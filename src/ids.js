@@ -1,4 +1,6 @@
 'use strict';
+// generate/increment IDs
+// acts the same as counting (1, 2, 3, ... 9, 10, 11, ...) but with a larger character set
 
 exports.anonymous = function(id) {
   return increment(id);
