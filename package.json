@@ -1,0 +1,26 @@
+{
+  "name": "plum",
+  "version": "0.0.1",
+  "description": "Learning Machine with Promises",
+  "author": "spinnytea <spinnytea@gmail.com>",
+  "private": true,
+  "devDependencies": {
+    "bluebird": "^3.2.2",
+    "chai": "^2.2.0",
+    "chai-things": "^0.2.0",
+    "gulp": "^3.8.6",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-jshint": "^2.0.0",
+    "gulp-mocha": "^2.2.0",
+    "gulp-rm": "^1.0.0",
+    "jshint": "^2.9.1",
+    "jshint-stylish": "^2.1.0",
+    "sinon": "^1.17.3",
+    "sinon-chai": "^2.8.0"
+  },
+  "dependencies": {
+    "lodash": "^4.2.1",
+    "mkdirp": "^0.5.1",
+    "priorityqueuejs": "^1.0.0"
+  }
+}
