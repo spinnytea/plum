@@ -23,21 +23,24 @@ function increment(nextID, index) {
   var tokens = exports.units.tokens;
   if(index === undefined) index = nextID.length-1;
 
-  if(index === -1) {
-    nextID = tokens[1] + nextID;
-  } else {
-    // get the next token index
-    var idx = tokens.indexOf(nextID.charAt(index)) + 1;
-
-    // if we can't increase that anymore, then increase the next value
-    if(idx === tokens.length) {
-      // increment the value before recursion
-      // when we roll over (99 -> 100), our index will be off by one
-      nextID = replaceAt(nextID, index, tokens[0]);
-      nextID = increment(nextID, index - 1); // XXX do a loop instead of recursion
+  while(index > -2) {
+    if(index === -1) {
+      nextID = tokens[1] + nextID;
     } else {
-      nextID = replaceAt(nextID, index, tokens[idx]);
+      // get the next token index
+      var idx = tokens.indexOf(nextID.charAt(index)) + 1;
+
+      // if we can't increase that anymore, then increase the next value
+      if(idx === tokens.length) {
+        // increment the value before recursion
+        // when we roll over (99 -> 100), our index will be off by one
+        nextID = replaceAt(nextID, index, tokens[0]);
+      } else {
+        nextID = replaceAt(nextID, index, tokens[idx]);
+        index = -1;
+      }
     }
+    index--;
   }
 
   return nextID;
