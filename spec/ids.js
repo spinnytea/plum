@@ -38,8 +38,8 @@ describe('ids', function() {
     return expect(ids.next(NEXT_ID).then(cleanup)).to.eventually.equal('1');
   });
 
-  it.skip('next (many)', function() {
-    var promises = new Array(5).map(function() { return ids.next(NEXT_ID); });
+  it('next (many)', function() {
+    let promises = new Array(5).fill(null).map(function() { return ids.next(NEXT_ID); });
     return expect(bluebird.all(promises).then(cleanup)).to.eventually.deep.equal(['1', '2', '3', '4', '5']);
   });
 }); // end ids

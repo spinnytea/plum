@@ -1,6 +1,12 @@
 'use strict';
 
-exports.get = ((path, key) => Promise.resolve(getValue(path, key)));
+// TODO simplify
+let promise = Promise.resolve();
+function chain(value) {
+  return (promise = promise.then(function() { return value(); }));
+}
+
+exports.get = ((path, key) => chain(() => getValue(path, key)));
 exports.set = ((path, key, value) => Promise.resolve(setValue(path, key, value)));
 
 Object.defineProperty(exports, 'units', { value: {} });
