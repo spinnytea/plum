@@ -27,5 +27,17 @@ describe('links', function() {
       expect(tu.isOpp).to.equal(false);
       expect(tu.opposite).to.equal(tu);
     });
+
+    it('options', function() {
+      let td = links.get('thought_description');
+      expect(td.options.transitive).to.equal(false);
+      expect(td.options.undirected).to.equal(undefined);
+      expect(td.options.directed).to.equal(undefined);
+
+      let to = links.get('type_of');
+      expect(to.options.transitive).to.equal(true);
+      expect(to.options.undirected).to.equal(undefined);
+      expect(to.options.directed).to.equal(undefined);
+    });
   }); // end create
 }); // end links

@@ -4,7 +4,9 @@
 // ideas take the lead role is storage, saving, and retrieval
 const _ = require('lodash');
 
-exports.get = function(name) { return exports.units.list[name]; };
+// after working with this for a while, links.list[name] is more consistent than links.list.name
+// links.get(name) seems like the natural way to go
+exports.get = (name => exports.units.list[name]);
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.list = {};
@@ -12,20 +14,21 @@ exports.units.create = create;
 
 function create(name, options) {
   options = _.merge({
-    transitive: false // XXX add a description
+    transitive: false, // some search operations will follow transitive edges (e.g. a->b->c, a->? may find b, c)
+    directed: true, // does the edge have a direction? is it a directed edge?
   }, options);
+  const directed = !!options.directed;
+  delete options.directed;
 
-  var link = { name: name, opposite: undefined, isOpp: false };
-  exports.units.list[name] = link;
+  let link = { name: name, opposite: undefined, isOpp: false, options: options };
 
-  if(!options.undirected) {
-    link.opposite = { name: name + '-opp', opposite: link, isOpp: true };
+  if(directed) {
+    link.opposite = Object.freeze({ name: name + '-opp', opposite: link, isOpp: true, options: options });
   } else {
     link.opposite = link;
   }
-  delete options.undirected;
 
-  return link;
+  return (exports.units.list[name] = Object.freeze(link));
 }
 
 
@@ -36,7 +39,7 @@ create('thought_description');
 // no embedded structural meaning
 // used in testing
 // XXX remove when we have a standard link that is undirected
-create('_test__undirected_', { undirected: true });
+create('_test__undirected_', { directed: false });
 
 // apple
 //  macintosh --typeof_of-> apple
