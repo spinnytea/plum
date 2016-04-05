@@ -1,13 +1,7 @@
 'use strict';
 
-exports.get = function(path, key) {
-  return Promise.resolve(getValue(path, key));
-};
-
-exports.set = function(path, key, value) {
-  setValue(path, key, value);
-  return Promise.resolve(value);
-};
+exports.get = ((path, key) => Promise.resolve(getValue(path, key)));
+exports.set = ((path, key, value) => Promise.resolve(setValue(path, key, value)));
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.data = {};
@@ -22,5 +16,5 @@ function getValue(path, key) {
 function setValue(path, key, value) {
   if(!path) throw new Error('configuration must specify a path');
   if(!key) throw new Error('configuration must specify a key');
-  (exports.units.data[path] = exports.units.data[path] || {})[key] = value;
+  return ((exports.units.data[path] = exports.units.data[path] || {})[key] = value);
 }
