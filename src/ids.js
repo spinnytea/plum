@@ -19,16 +19,16 @@ function replaceAt(str, index, character) {
   return str.substr(0, index) + character + str.substr(index+character.length);
 }
 
-function increment(nextID, index) {
-  var tokens = exports.units.tokens;
-  if(index === undefined) index = nextID.length-1;
+function increment(nextID) {
+  const tokens = exports.units.tokens;
+  let index = nextID.length-1;
 
   while(index > -2) {
     if(index === -1) {
-      nextID = tokens[1] + nextID;
+      nextID = tokens[1] + nextID; // 10000...
     } else {
       // get the next token index
-      var idx = tokens.indexOf(nextID.charAt(index)) + 1;
+      let idx = tokens.indexOf(nextID.charAt(index)) + 1;
 
       // if we can't increase that anymore, then increase the next value
       if(idx === tokens.length) {

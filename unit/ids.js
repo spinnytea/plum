@@ -1,6 +1,6 @@
 'use strict';
-var expect = require('chai').expect;
-var ids = require('../src/ids');
+const expect = require('chai').expect;
+const ids = require('../src/ids');
 
 describe('ids', function() {
   it('init', function() {
@@ -8,7 +8,7 @@ describe('ids', function() {
   });
 
   it('tokens', function() {
-    var tokens = ids.units.tokens;
+    const tokens = ids.units.tokens;
 
     // 36 doesn't really matter, but it's good to know
     expect(tokens.length).to.equal(36);
@@ -25,7 +25,7 @@ describe('ids', function() {
   });
 
   it('replaceAt', function() {
-    var replaceAt = ids.units.replaceAt;
+    const replaceAt = ids.units.replaceAt;
 
     expect(replaceAt('1234', 0, 'a')).to.equal('a234');
     expect(replaceAt('1234', 1, 'a')).to.equal('1a34');
@@ -34,15 +34,10 @@ describe('ids', function() {
   });
 
   describe('increment', function() {
-    var tokens_bak;
-    var increment = ids.units.increment;
-    before(function() {
-      tokens_bak = ids.units.tokens;
-      ids.units.tokens = ['0', '1', '2'];
-    });
-    after(function() {
-      ids.units.tokens = tokens_bak;
-    });
+    const tokens_bak = ids.units.tokens;
+    const increment = ids.units.increment;
+    before(function() { ids.units.tokens = ['0', '1', '2']; });
+    after(function() { ids.units.tokens = tokens_bak; });
 
     it('initial', function() {
       expect(increment('')).to.equal('1');
@@ -53,13 +48,6 @@ describe('ids', function() {
       expect(increment('1')).to.equal('2');
       expect(increment('10')).to.equal('11');
       expect(increment('11')).to.equal('12');
-    });
-
-    it('at position', function() {
-      // unit test the recursive case
-      expect(increment('100', 2)).to.equal('101');
-      expect(increment('100', 1)).to.equal('110');
-      expect(increment('100', 0)).to.equal('200');
     });
 
     it('rollover', function() {
@@ -77,8 +65,7 @@ describe('ids', function() {
 
     it('increment: invalid characters', function() {
       expect(ids.units.increment('%')).to.equal('0');
-      expect(ids.units.increment('2%2', 1)).to.equal('202');
-      expect(ids.units.increment('2%%2', 1)).to.equal('20%2');
+      expect(ids.units.increment('22%', 1)).to.equal('220');
     });
   }); // end unsupported
 }); // end ids

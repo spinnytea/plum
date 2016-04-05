@@ -1,6 +1,6 @@
 'use strict';
-var expect = require('chai').expect;
-var ids = require('../src/ids');
+const expect = require('chai').expect;
+const ids = require('../src/ids');
 
 describe('ids', function() {
   it('init', function() {

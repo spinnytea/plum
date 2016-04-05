@@ -1,6 +1,6 @@
 'use strict';
-var expect = require('chai').expect;
-var links = require('../../src/database/links');
+const expect = require('chai').expect;
+const links = require('../../src/database/links');
 
 describe('links', function() {
   it('init', function() {
@@ -13,7 +13,7 @@ describe('links', function() {
 
   describe('create', function() {
     it('directed', function() {
-      var td = links.get('thought_description');
+      let td = links.get('thought_description');
       expect(td.name).to.equal('thought_description');
       expect(td.isOpp).to.equal(false);
       expect(td.opposite.name).to.not.equal(td.name);
@@ -22,7 +22,7 @@ describe('links', function() {
     });
 
     it('undirected', function() {
-      var tu = links.get('_test__undirected_');
+      let tu = links.get('_test__undirected_');
       expect(tu.name).to.equal('_test__undirected_');
       expect(tu.isOpp).to.equal(false);
       expect(tu.opposite).to.equal(tu);

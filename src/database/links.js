@@ -2,7 +2,7 @@
 // link ideas together
 // these are the edges of the graph
 // ideas take the lead role is storage, saving, and retrieval
-var _ = require('lodash');
+const _ = require('lodash');
 
 exports.get = function(name) { return exports.units.list[name]; };
 

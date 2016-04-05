@@ -1,6 +1,6 @@
 'use strict';
-var expect = require('chai').expect;
-var links = require('../../src/database/links');
+const expect = require('chai').expect;
+const links = require('../../src/database/links');
 
 describe('links', function() {
   it('init', function() {
