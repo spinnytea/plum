@@ -12,32 +12,35 @@ describe('links', function() {
   });
 
   describe('create', function() {
+    const td = links.get('thought_description');
+    const tu = links.get('_test__undirected_');
+    const to = links.get('type_of');
+
     it('directed', function() {
-      let td = links.get('thought_description');
       expect(td.name).to.equal('thought_description');
       expect(td.isOpp).to.equal(false);
+      expect(td.opposite).to.not.equal(td);
       expect(td.opposite.name).to.not.equal(td.name);
       expect(td.opposite.isOpp).to.equal(true);
       expect(td.opposite.opposite).to.equal(td);
     });
 
     it('undirected', function() {
-      let tu = links.get('_test__undirected_');
       expect(tu.name).to.equal('_test__undirected_');
       expect(tu.isOpp).to.equal(false);
       expect(tu.opposite).to.equal(tu);
     });
 
-    it('options', function() {
-      let td = links.get('thought_description');
-      expect(td.options.transitive).to.equal(false);
-      expect(td.options.undirected).to.equal(undefined);
-      expect(td.options.directed).to.equal(undefined);
+    describe('options', function() {
+      it('directed', function() {
+        expect(td.options.undirected).to.equal(undefined);
+        expect(td.options.directed).to.equal(undefined);
+      });
 
-      let to = links.get('type_of');
-      expect(to.options.transitive).to.equal(true);
-      expect(to.options.undirected).to.equal(undefined);
-      expect(to.options.directed).to.equal(undefined);
-    });
+      it('transitive', function() {
+        expect(td.options.transitive).to.equal(false);
+        expect(to.options.transitive).to.equal(true);
+      });
+    }); // end options
   }); // end create
 }); // end links

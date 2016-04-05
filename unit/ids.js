@@ -54,6 +54,12 @@ describe('ids', function() {
       expect(increment('2')).to.equal('10');
       expect(increment('22')).to.equal('100');
     });
+
+    it('type', function() {
+      // I've made this mistake once or twice
+      expect(function() { increment(0); }).to.throw(TypeError);
+      expect(function() { increment('0'); }).to.not.throw(TypeError);
+    });
   }); // end increment
 
   describe('unsupported', function() {

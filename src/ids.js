@@ -1,8 +1,9 @@
 'use strict';
+var _ = require('lodash');
 // generate/increment IDs
 // acts the same as counting (1, 2, 3, ... 9, 10, 11, ...) but with a larger character set
 
-exports.anonymous = (id => increment(id));
+exports.anonymous = (nextID => increment(nextID));
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.tokens = Object.freeze([
@@ -18,6 +19,7 @@ function replaceAt(str, index, character) {
 }
 
 function increment(nextID) {
+  if(!_.isString(nextID)) throw new TypeError('nextID must be a string');
   const tokens = exports.units.tokens;
   let index = nextID.length-1;
 
