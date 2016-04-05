@@ -20,6 +20,8 @@ describe('ids', function() {
     // I like to use underscores for special IDs, so we need to make sure the normally generated IDs can't overlap with them
     expect(tokens.indexOf('a')).to.not.equal(-1); // make sure our search works
     expect(tokens.indexOf('_')).to.equal(-1); // perform the test
+
+    expect(function() { tokens.push('%'); }).to.throw(TypeError);
   });
 
   it('replaceAt', function() {
