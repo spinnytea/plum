@@ -1,4 +1,5 @@
 'use strict';
+var _ = require('lodash');
 var gulp = require('gulp');
 var istanbul = require('gulp-istanbul');
 var jshint = require('gulp-jshint');
@@ -32,38 +33,63 @@ if(reporter === 'skipped') {
 }
 
 
-var files = ['spec/**/*.js', 'src/**/*.js'];
+var spec = ['spec/**/*.js'];
+var source = ['src/**/*.js'];
+var unit = ['unit/**/*.js'];
+var tests = _.flatten([spec, unit]);
+var files = _.flatten([source, tests]);
 
-gulp.task('mocha', ['jshint'], function() {
-  return gulp.src(['spec/**/*.js'], {read: false})
-    .pipe(mocha({reporter: reporter}));
-});
-
-gulp.task('jshint', [], function () {
+gulp.task('lint', [], function () {
   return gulp.src(files).pipe(jshint())
     .pipe(jshint.reporter('jshint-stylish'))
     .pipe(jshint.reporter('fail'));
 });
 
-gulp.task('test', [], function() {
-  gulp.watch(files, ['mocha']);
-  gulp.start('mocha');
+gulp.task('spec', ['lint'], function() {
+  return gulp.src(spec, {read: false})
+    .pipe(mocha({reporter: reporter}));
+});
+gulp.task('unit', ['lint'], function() {
+  return gulp.src(unit, {read: false})
+    .pipe(mocha({reporter: reporter}));
+});
+gulp.task('test', ['lint'], function() {
+  return gulp.src(tests, {read: false})
+    .pipe(mocha({reporter: reporter}));
 });
 
 gulp.task('coverage', [], function (cb) {
-  gulp.src(['src/**/*.js'])
-    .pipe(istanbul({
-      includeUntested: true
-    })) // Covering files
+  gulp.src(source)
+    .pipe(istanbul({ includeUntested: true })) // Covering files
     .pipe(istanbul.hookRequire()) // Force `require` to return covered files
     .on('finish', function () {
-      return gulp.src(['spec/**/*.js'], { read: false })
-        .pipe(mocha({
-          reporter: 'list'
-        }))
-        .pipe(istanbul.writeReports({
-          reporters: ['html']
-        }))
+      return gulp.src(tests, { read: false })
+        .pipe(mocha({reporter: 'list'}))
+        .pipe(istanbul.writeReports({reporters: ['html']}))
         .on('end', cb);
     });
+});
+
+//
+
+gulp.task('testd', [], function() {
+  gulp.watch(files, ['test']);
+  gulp.start('test');
+});
+
+gulp.task('coverage-unit', ['lint'], function (cb) {
+  gulp.src(source)
+    .pipe(istanbul({ includeUntested: true })) // Covering files
+    .pipe(istanbul.hookRequire()) // Force `require` to return covered files
+    .on('finish', function () {
+      return gulp.src(unit, { read: false })
+        .pipe(mocha({reporter: 'nyan'}))
+        .on('error', function() { /* gutil.log(arguments); */ this.emit('end'); })
+        .pipe(istanbul.writeReports({reporters: ['html']}))
+        .on('end', cb);
+    });
+});
+gulp.task('unitd', [], function() {
+  gulp.watch(files, ['coverage-unit']);
+  gulp.start('coverage-unit');
 });
