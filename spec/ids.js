@@ -5,7 +5,6 @@ var ids = require('../src/ids');
 describe('ids', function() {
   it('init', function() {
     expect(Object.keys(ids)).to.deep.equal(['anonymous']);
-    expect(Object.keys(ids.units)).to.deep.equal(['tokens', 'replaceAt', 'increment']);
   });
 
   it('anonymous', function() {
