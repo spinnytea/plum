@@ -1,9 +1,11 @@
 'use strict';
-var _ = require('lodash');
 // generate/increment IDs
 // acts the same as counting (1, 2, 3, ... 9, 10, 11, ...) but with a larger character set
+const _ = require('lodash');
+const config = require('./config');
 
 exports.anonymous = (nextID => increment(nextID));
+exports.next = (key => config.get('ids', key).then(function(nextID) { return config.set('ids', key, increment(nextID || '0')); }));
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.tokens = Object.freeze([

@@ -11,7 +11,8 @@ exports.units.setValue = setValue;
 function getValue(path, key) {
   if(!path) throw new Error('configuration must specify a path');
   if(!key) throw new Error('configuration must specify a key');
-  return (exports.units.data[path] = exports.units.data[path] || {})[key];
+  var obj = (exports.units.data[path] = exports.units.data[path] || {});
+  return (obj[key] = obj[key]);
 }
 function setValue(path, key, value) {
   if(!path) throw new Error('configuration must specify a path');
