@@ -5,7 +5,6 @@ const ideas = require('../../src/database/ideas');
 describe('ideas', function() {
   it('init', function() {
     expect(Object.keys(ideas.units)).to.deep.equal(['memory', 'getID']);
-    expect(Object.keys(ideas.boundaries)).to.deep.equal(['load', 'save']);
   });
 
   it('memory', function() {
@@ -38,8 +37,5 @@ describe('ideas', function() {
     expect(function() { getID(1234); }).to.throw(TypeError);
     expect(function() { getID({}); }).to.throw(TypeError);
   });
-
-  it.skip('load');
-
-  it.skip('save');
+  it.skip('getID with ProxyIdea');
 }); // end ideas

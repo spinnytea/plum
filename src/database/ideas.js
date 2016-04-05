@@ -18,5 +18,17 @@ function getID(idea) {
 
 
 Object.defineProperty(exports, 'boundaries', { value: {} });
-exports.boundaries.load = undefined;
-exports.boundaries.save = undefined;
+exports.boundaries.database = { data: {}, links: {} }; // for memorySave/memoryLoad
+exports.boundaries.memoryLoad = memoryLoad;
+exports.boundaries.memorySave = memorySave;
+
+function memoryLoad(id, which) {
+  return Promise.resolve(exports.boundaries.database[which][id]);
+}
+function memorySave(id, which, obj) {
+  if(obj)
+    exports.boundaries.database[which][id] = obj;
+  else
+    delete exports.boundaries.database[which][id];
+  return Promise.resolve();
+}
