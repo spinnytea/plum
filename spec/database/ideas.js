@@ -8,20 +8,44 @@ describe('ideas', function() {
   });
 
   it('create (empty)', function() {
-    return expect(ideas.create()).to.eventually.have.property('id');
+    return ideas.create().then(function(proxy) {
+      expect(proxy).to.have.property('id');
+      expect(ideas.units.memory.has(proxy.id)).to.equal(true);
+      expect(ideas.boundaries.database.data).to.not.have.property(proxy.id);
+    });
   });
 
   it('create (data)', function() {
-    return expect(ideas.create({key:'some data'})).to.eventually.have.property('id');
+    return ideas.create({key:'some data'}).then(function(proxy) {
+      expect(proxy).to.have.property('id');
+      expect(ideas.units.memory.has(proxy.id)).to.equal(true);
+      expect(ideas.boundaries.database.data).to.have.property(proxy.id);
+    });
+  });
+
+  it('save (not loaded)', function() {
+    let id = '_test_' + Math.random();
+    return ideas.save(id).then(function(proxy) {
+      expect(proxy.id).to.equal(id);
+      expect(ideas.units.memory.has(proxy.id)).to.equal(false);
+      expect(ideas.boundaries.database.data).to.not.property(proxy.id);
+    });
   });
 
   it('save (empty)', function() {
-    let id = '_test_' + Math.random();
-    return expect(ideas.save(id)).to.eventually.deep.equal({id:id});
+    return ideas.create().then(ideas.save).then(function(proxy) {
+      expect(proxy).to.have.property('id');
+      expect(ideas.units.memory.has(proxy.id)).to.equal(true);
+      expect(ideas.boundaries.database.data).to.not.have.property(proxy.id);
+    });
   });
 
   it('save (data)', function() {
-    return expect(ideas.save('_test').then(ideas.save)).to.eventually.deep.equal({id:'_test'});
+    return ideas.create({key:'some data'}).then(ideas.save).then(function(proxy) {
+      expect(proxy).to.have.property('id');
+      expect(ideas.units.memory.has(proxy.id)).to.equal(true);
+      expect(ideas.boundaries.database.data).to.have.property(proxy.id);
+    });
   });
 
   //
