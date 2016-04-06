@@ -4,8 +4,14 @@
 const _ = require('lodash');
 const config = require('./config');
 
+// TODO simplify
+let txnPromise = Promise.resolve();
+function chain(atomFn) { return (txnPromise = txnPromise.then(atomFn)); }
+
 exports.anonymous = (nextID => increment(nextID));
-exports.next = (key => config.get('ids', key).then(function(nextID) { return config.set('ids', key, increment(nextID || '0')); }));
+exports.next = function(key) {
+  return chain(() => config.get('ids', key).then(nextID => config.set('ids', key, increment(nextID || '0'))));
+};
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.tokens = Object.freeze([
