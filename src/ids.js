@@ -4,14 +4,18 @@
 const _ = require('lodash');
 const config = require('./config');
 
-// TODO simplify
-let txnPromise = Promise.resolve();
-function chain(atomFn) { return (txnPromise = txnPromise.then(atomFn)); }
 
+// just increment the value
 exports.anonymous = (nextID => increment(nextID));
+
+// chain together the promises so we can call this multiple times before going async
+let txnPromise = Promise.resolve();
+function chain(fn) { return (txnPromise = txnPromise.then(fn)); }
+// get, increment, save, return
 exports.next = function(key) {
   return chain(() => config.get('ids', key).then(nextID => config.set('ids', key, increment(nextID || '0'))));
 };
+
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.tokens = Object.freeze([

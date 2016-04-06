@@ -4,9 +4,11 @@
 // ideas take the lead role is storage, saving, and retrieval
 const _ = require('lodash');
 
+
 // after working with this for a while, links.list[name] is more consistent than links.list.name
 // links.get(name) seems like the natural way to go
 exports.get = (name => exports.units.list[name]);
+
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.list = {};
