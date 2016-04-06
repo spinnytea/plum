@@ -1,10 +1,27 @@
 'use strict';
-const expect = require('chai').expect;
+const expect = require('chai').use(require('chai-as-promised')).expect;
 const ideas = require('../../src/database/ideas');
 
 describe('ideas', function() {
   it('init', function() {
-    expect(Object.keys(ideas)).to.deep.equal([]);
+    expect(Object.keys(ideas)).to.deep.equal(['create', 'save']);
+  });
+
+  it('create (empty)', function() {
+    return expect(ideas.create()).to.eventually.have.property('id');
+  });
+
+  it('create (data)', function() {
+    return expect(ideas.create({key:'some data'})).to.eventually.have.property('id');
+  });
+
+  it('save (empty)', function() {
+    let id = '_test_' + Math.random();
+    return expect(ideas.save(id)).to.eventually.deep.equal({id:id});
+  });
+
+  it('save (data)', function() {
+    return expect(ideas.save('_test').then(ideas.save)).to.eventually.deep.equal({id:'_test'});
   });
 
   //
