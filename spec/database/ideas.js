@@ -75,7 +75,25 @@ describe('ideas', function() {
   //
 
   describe('ProxyIdea', function() {
-    it.skip('init');
+    var proxy;
+    before(function() {
+      return ideas.create().then(p => (proxy = p));
+    });
+
+    it('update', function() {
+      return proxy.update('some other data').then(function(data) {
+        expect(data).to.equal('some other data');
+        expect(ideas.units.memory.get(proxy.id).data).to.equal('some other data');
+      });
+    });
+
+    it('data', function() {
+      ideas.units.memory.get(proxy.id).data = ['some data'];
+      return proxy.data().then(function(data) {
+        expect(data).to.deep.equal(['some data']);
+        expect(data).to.not.equal(ideas.units.memory.get(proxy.id).data);
+      });
+    });
   });
 
   //

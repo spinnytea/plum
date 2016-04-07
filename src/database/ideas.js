@@ -13,13 +13,15 @@ let saveFn = memorySave;
 class CoreIdea {
   constructor(id, data, links) {
     this.id = id;
-    this.data = data || {};
+    this.data = data;
     this.links = links || {};
   }
 }
 
 class ProxyIdea {
   constructor(id) { this.id = id; }
+  update(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
+  data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
 }
 
 
@@ -33,7 +35,6 @@ exports.create = function(data) {
 
 exports.load = function(idea) {
   let proxy = new ProxyIdea(getID(idea));
-      console.log('load');
   if(memory.has(proxy.id)) {
     return Promise.resolve(proxy);
   } else {
@@ -94,7 +95,7 @@ function memoryLoad(id, which) {
   return Promise.resolve(exports.boundaries.database[which][id]);
 }
 function memorySave(id, which, obj) {
-  if(obj && !_.isEmpty(obj)) exports.boundaries.database[which][id] = obj;
+  if(obj) exports.boundaries.database[which][id] = obj;
   else delete exports.boundaries.database[which][id];
   return Promise.resolve();
 }
