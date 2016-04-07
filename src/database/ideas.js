@@ -64,6 +64,14 @@ exports.save = function(idea) {
   }
 };
 
+// XXX exports.delete
+exports.close = function(idea) {
+  return exports.save(idea).then(function(proxy) {
+    memory.delete(proxy.id);
+    return proxy;
+  });
+};
+
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.memory = memory;

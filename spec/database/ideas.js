@@ -4,7 +4,7 @@ const ideas = require('../../src/database/ideas');
 
 describe('ideas', function() {
   it('init', function() {
-    expect(Object.keys(ideas)).to.deep.equal(['create', 'load', 'proxy', 'save']);
+    expect(Object.keys(ideas)).to.deep.equal(['create', 'load', 'proxy', 'save', 'close']);
   });
 
   it('create (empty)', function() {
@@ -62,6 +62,13 @@ describe('ideas', function() {
       expect(proxy).to.have.property('id');
       expect(ideas.units.memory.has(proxy.id)).to.equal(true);
       expect(ideas.boundaries.database.data).to.have.property(proxy.id);
+    });
+  });
+
+  it('close', function() {
+    return ideas.create().then(ideas.close).then(function(proxy) {
+      expect(proxy).to.have.property('id');
+      expect(ideas.units.memory.has(proxy.id)).to.equal(false);
     });
   });
 
