@@ -6,6 +6,7 @@ const ids = require('../ids');
 
 const memory = new Map();
 const NEXT_ID = 'ideas';
+let loadFn = memoryLoad;
 let saveFn = memorySave;
 
 
@@ -30,6 +31,25 @@ exports.create = function(data) {
   });
 };
 
+exports.load = function(idea) {
+  let proxy = new ProxyIdea(getID(idea));
+      console.log('load');
+  if(memory.has(proxy.id)) {
+    return Promise.resolve(proxy);
+  } else {
+    return Promise.all([
+      loadFn(proxy.id, 'data'),
+      loadFn(proxy.id, 'links'),
+    ]).then(function() { // TODO use destructuring
+      memory.set(proxy.id, new CoreIdea(proxy.id, arguments[0], arguments[1]));
+      return proxy;
+    });
+  }
+};
+exports.proxy = function(idea) {
+  return Promise.resolve(new ProxyIdea(idea));
+};
+
 exports.save = function(idea) {
   let proxy = new ProxyIdea(getID(idea));
   let core = memory.get(proxy.id);
@@ -50,6 +70,7 @@ exports.units.memory = memory;
 exports.units.getID = getID;
 
 function getID(idea) {
+  if(!idea) throw new TypeError('can only load ideas');
   let id = idea.id || idea;
   if(!_.isString(id)) throw new TypeError('can only load ideas');
   return id;

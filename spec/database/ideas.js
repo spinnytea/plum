@@ -4,7 +4,7 @@ const ideas = require('../../src/database/ideas');
 
 describe('ideas', function() {
   it('init', function() {
-    expect(Object.keys(ideas)).to.deep.equal(['create', 'save']);
+    expect(Object.keys(ideas)).to.deep.equal(['create', 'load', 'proxy', 'save']);
   });
 
   it('create (empty)', function() {
@@ -23,10 +23,27 @@ describe('ideas', function() {
     });
   });
 
+  it('load (empty)', function() {
+    let id = '_test_' + Math.random();
+    expect(ideas.units.memory.has(id)).to.equal(false);
+    return ideas.load(id).then(function(proxy) {
+      expect(proxy).to.deep.equal({id:id});
+      expect(ideas.units.memory.has(proxy.id)).to.equal(true);
+    });
+  });
+
+  it('proxy', function() {
+    return ideas.proxy('_test').then(function(proxy) {
+      expect(proxy).to.deep.equal({id:'_test'});
+      expect(proxy.constructor.name).to.equal('ProxyIdea');
+    });
+  });
+
   it('save (not loaded)', function() {
     let id = '_test_' + Math.random();
+    expect(ideas.units.memory.has(id)).to.equal(false);
     return ideas.save(id).then(function(proxy) {
-      expect(proxy.id).to.equal(id);
+      expect(proxy).to.deep.equal({id:id});
       expect(ideas.units.memory.has(proxy.id)).to.equal(false);
       expect(ideas.boundaries.database.data).to.not.property(proxy.id);
     });
@@ -46,6 +63,12 @@ describe('ideas', function() {
       expect(ideas.units.memory.has(proxy.id)).to.equal(true);
       expect(ideas.boundaries.database.data).to.have.property(proxy.id);
     });
+  });
+
+  //
+
+  describe('ProxyIdea', function() {
+    it.skip('init');
   });
 
   //
