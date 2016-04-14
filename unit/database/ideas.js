@@ -33,13 +33,12 @@ describe('ideas', function() {
     const getID = ideas.units.getID;
 
     expect(getID('_test')).to.equal('_test');
-    expect(getID({ id: '_test' })).to.equal('_test');
+    expect(getID(new ideas.units.ProxyIdea('_test'))).to.equal('_test');
 
     expect(function() { getID(); }).to.throw(TypeError);
     expect(function() { getID(1234); }).to.throw(TypeError);
     expect(function() { getID({}); }).to.throw(TypeError);
   });
-  it.skip('getID with ProxyIdea');
 
   describe('ProxyIdea', function() {
     let proxy;
