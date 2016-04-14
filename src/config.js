@@ -1,9 +1,9 @@
 'use strict';
+// TODO save/load settings file
+// XXX do we really need a path AND key, we can just use the convention of dot notation
 
 exports.get = ((path, key, value) => Promise.resolve(getValue(path, key, value)));
 exports.set = ((path, key, value) => Promise.resolve(setValue(path, key, value)));
-
-// TODO save/load settings file
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.data = {};

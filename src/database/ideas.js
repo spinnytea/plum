@@ -2,10 +2,13 @@
 // these are the vertices of the though graph
 // this is how all the data is stored
 const _ = require('lodash');
+const bluebird = require('bluebird');
+const config = require('../config');
 const ids = require('../ids');
 
 const memory = new Map();
 const NEXT_ID = 'ideas';
+const contextPromise = config.get('ideas', 'context', {});
 let loadFn = memoryLoad;
 let saveFn = memorySave;
 
@@ -70,6 +73,25 @@ exports.close = function(idea) {
   return exports.save(idea).then(function(proxy) {
     memory.delete(proxy.id);
     return proxy;
+  });
+};
+
+/* allows for hard coded context ideas */
+exports.context = function(name) {
+  if(!name) throw new Error('must provide a name');
+
+  return contextPromise.then(function(context) {
+    const id = context[name];
+    if(id) {
+      return Promise.resolve(new ProxyIdea(id));
+    } else {
+      return bluebird.coroutine(function*() {
+        let proxy = yield exports.create({name:name});
+        context[name] = proxy.id;
+        yield config.set('ideas', 'context', context);
+        return proxy;
+      })();
+    }
   });
 };
 
