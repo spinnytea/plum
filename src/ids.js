@@ -13,8 +13,8 @@ exports.anonymous = (nextID => increment(nextID || '0'));
 let txnPromise = Promise.resolve();
 function chain(fn) { return (txnPromise = txnPromise.then(fn)); }
 exports.next = (key => chain(bluebird.coroutine(function*() {
-  let nextID = yield config.get('ids', key);
-  nextID = increment(nextID || '0');
+  let nextID = yield config.get('ids', key, '0');
+  nextID = increment(nextID);
   return config.set('ids', key, nextID);
 })));
 
