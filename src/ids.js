@@ -42,7 +42,7 @@ function increment(nextID) {
       nextID = tokens[1] + nextID; // 10000...
     } else {
       // get the next token index
-      let idx = tokens.indexOf(nextID.charAt(index)) + 1;
+      const idx = tokens.indexOf(nextID.charAt(index)) + 1;
 
       // if we can't increase that anymore, then increase the next value
       if(idx === tokens.length) {

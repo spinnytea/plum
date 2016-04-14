@@ -34,7 +34,7 @@ exports.create = function(data) {
 };
 
 exports.load = function(idea) {
-  let proxy = new ProxyIdea(getID(idea));
+  const proxy = new ProxyIdea(getID(idea));
   if(memory.has(proxy.id)) {
     return Promise.resolve(proxy);
   } else {
@@ -52,8 +52,8 @@ exports.proxy = function(idea) {
 };
 
 exports.save = function(idea) {
-  let proxy = new ProxyIdea(getID(idea));
-  let core = memory.get(proxy.id);
+  const proxy = new ProxyIdea(getID(idea));
+  const core = memory.get(proxy.id);
 
   if(core) {
     return Promise.all([
@@ -80,7 +80,7 @@ exports.units.getID = getID;
 
 function getID(idea) {
   if(!idea) throw new TypeError('can only load ideas');
-  let id = idea.id || idea;
+  const id = idea.id || idea;
   if(!_.isString(id)) throw new TypeError('can only load ideas');
   return id;
 }

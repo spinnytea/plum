@@ -24,7 +24,7 @@ describe('ideas', function() {
   });
 
   it('load (empty)', function() {
-    let id = '_test_' + Math.random();
+    const id = '_test_' + Math.random();
     expect(ideas.units.memory.has(id)).to.equal(false);
     return ideas.load(id).then(function(proxy) {
       expect(proxy).to.deep.equal({id:id});
@@ -40,7 +40,7 @@ describe('ideas', function() {
   });
 
   it('save (not loaded)', function() {
-    let id = '_test_' + Math.random();
+    const id = '_test_' + Math.random();
     expect(ideas.units.memory.has(id)).to.equal(false);
     return ideas.save(id).then(function(proxy) {
       expect(proxy).to.deep.equal({id:id});
@@ -94,7 +94,7 @@ describe('ideas', function() {
         expect(data).to.not.equal(ideas.units.memory.get(proxy.id).data);
       });
     });
-  });
+  }); // end ProxyIdea
 
   //
 

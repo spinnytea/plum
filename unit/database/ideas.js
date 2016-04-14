@@ -10,9 +10,9 @@ describe('ideas', function() {
   it('memory', function() {
     // okay, I know, this is just testing maps
     // but this is how memory is used
-    let map = new Map();
-    let key = 'thing1';
-    let value = 10;
+    const map = new Map();
+    const key = 'thing1';
+    const value = 10;
 
     expect(map.has(key)).to.equal(false);
     map.set(key, value);

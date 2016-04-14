@@ -10,9 +10,9 @@ describe('config', function() {
   it('data', function() { /* there is nothing to test */ });
 
   describe('getValue', function() {
-    let path = 'some.path';
-    let key = 'someKey';
-    let value = 'some value';
+    const path = 'some.path';
+    const key = 'someKey';
+    const value = 'some value';
 
     afterEach(function() { delete config.units.data[path]; });
 
@@ -40,10 +40,10 @@ describe('config', function() {
   }); // end getValue
 
   describe('setValue', function() {
-    let path = 'some.path';
-    let key = 'someKey';
-    let value1 = 'some value';
-    let value2 = 'some value';
+    const path = 'some.path';
+    const key = 'someKey';
+    const value1 = 'some value';
+    const value2 = 'some value';
 
     afterEach(function() { delete config.units.data[path]; });
 

@@ -17,10 +17,10 @@ function getConfigObject(path, key) {
 }
 
 function getValue(path, key, value) {
-  let obj = getConfigObject(path, key);
+  const obj = getConfigObject(path, key);
   return (obj[key] = (obj[key] || value));
 }
 function setValue(path, key, value) {
-  let obj = getConfigObject(path, key);
+  const obj = getConfigObject(path, key);
   return (obj[key] = value);
 }

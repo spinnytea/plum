@@ -22,7 +22,7 @@ function create(name, options) {
   const directed = !!options.directed;
   delete options.directed;
 
-  let link = { name: name, opposite: undefined, isOpp: false, options: options };
+  const link = { name: name, opposite: undefined, isOpp: false, options: options };
 
   if(directed) {
     link.opposite = Object.freeze({ name: name + '-opp', opposite: link, isOpp: true, options: options });
