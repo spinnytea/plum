@@ -29,11 +29,31 @@ class ProxyIdea {
   // removeLink(link, idea) {}
 }
 ProxyIdea.prototype.addLink = bluebird.coroutine(function*(link, idea) {
-  const id = getID(idea);
-  yield exports.load(id);
+  yield exports.load(idea);
   yield exports.load(this.id);
-  (memory.get(this.id).links[link.name] = memory.get(this.id).links[link.name] || {})[id] = {};
-  (memory.get(id).links[link.opposite.name] = memory.get(id).links[link.opposite.name] || {})[this.id] = {};
+  (memory.get(this.id).links[link.name] = memory.get(this.id).links[link.name] || {})[idea.id] = {};
+  (memory.get(idea.id).links[link.opposite.name] = memory.get(idea.id).links[link.opposite.name] || {})[this.id] = {};
+});
+ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
+  idea = yield exports.load(idea);
+  yield exports.load(this.id);
+
+  // remove the idea from this
+  let ls = memory.get(this.id).links;
+  let list = ls[link.name];
+  delete list[idea.id];
+  // TODO use a faster 'has keys' function
+  if(Object.keys(list).length === 0) {
+    delete ls[link.name];
+  }
+
+  // remove this from the idea
+  ls = memory.get(idea.id).links;
+  list = ls[link.opposite.name];
+  delete list[this.id];
+  if(Object.keys(list).length === 0) {
+    delete ls[link.opposite.name];
+  }
 });
 
 

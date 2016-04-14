@@ -1,4 +1,5 @@
 'use strict';
+const bluebird = require('bluebird');
 const expect = require('chai').expect;
 const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
@@ -62,27 +63,32 @@ describe('ideas', function() {
     });
 
     it('links', function() {
-      // set, get remove
-      return ideas.create().then(function(proxy2) {
+      return bluebird.coroutine(function*() {
         const link = links.get('thought_description');
+        const proxy2 = yield ideas.create();
 
-        return proxy.addLink(link, proxy2).then(function() {
-          expect(ideas.units.memory.get(proxy.id).links[link.name]).to.have.property(proxy2.id);
-          expect(ideas.units.memory.get(proxy2.id).links[link.opposite.name]).to.have.property(proxy.id);
+        // add
+        yield proxy.addLink(link, proxy2);
+        expect(ideas.units.memory.get(proxy.id).links[link.name]).to.have.property(proxy2.id);
+        expect(ideas.units.memory.get(proxy2.id).links[link.opposite.name]).to.have.property(proxy.id);
 
-          return proxy.links(link);
-        }).then(function(list) {
-          expect(list.length).to.equal(1);
-          expect(list[0]).to.deep.equal(proxy2);
+        // get
+        let list = yield proxy.links(link);
+        expect(list).to.deep.equal([proxy2]);
+        list = yield proxy2.links(link.opposite);
+        expect(list).to.deep.equal([proxy]);
 
-          return proxy2.links(link.opposite);
-        }).then(function(list) {
-          expect(list.length).to.equal(1);
-          expect(list[0]).to.deep.equal(proxy);
+        // remove
+        yield proxy.removeLink(link, proxy2);
+        expect(ideas.units.memory.get(proxy.id).links).to.not.have.property(link.name);
+        expect(ideas.units.memory.get(proxy2.id).links).to.not.have.property(link.opposite.name);
 
-        });
-
-      });
+        // get
+        list = yield proxy.links(link);
+        expect(list).to.deep.equal([]);
+        list = yield proxy2.links(link.opposite);
+        expect(list).to.deep.equal([]);
+      })();
     });
   }); // end ProxyIdea
 }); // end ideas
