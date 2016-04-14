@@ -1,6 +1,7 @@
 'use strict';
 const expect = require('chai').expect;
 const ideas = require('../../src/database/ideas');
+const links = require('../../src/database/links');
 
 describe('ideas', function() {
   it('init', function() {
@@ -40,7 +41,7 @@ describe('ideas', function() {
   it.skip('getID with ProxyIdea');
 
   describe('ProxyIdea', function() {
-    var proxy;
+    let proxy;
     before(function() {
       return ideas.create().then(p => (proxy = p));
     });
@@ -60,9 +61,28 @@ describe('ideas', function() {
       });
     });
 
-    it.skip('links', function() {
+    it('links', function() {
       // set, get remove
+      return ideas.create().then(function(proxy2) {
+        const link = links.get('thought_description');
 
+        return proxy.addLink(link, proxy2).then(function() {
+          expect(ideas.units.memory.get(proxy.id).links[link.name]).to.have.property(proxy2.id);
+          expect(ideas.units.memory.get(proxy2.id).links[link.opposite.name]).to.have.property(proxy.id);
+
+          return proxy.links(link);
+        }).then(function(list) {
+          expect(list.length).to.equal(1);
+          expect(list[0]).to.deep.equal(proxy2);
+
+          return proxy2.links(link.opposite);
+        }).then(function(list) {
+          expect(list.length).to.equal(1);
+          expect(list[0]).to.deep.equal(proxy);
+
+        });
+
+      });
     });
   }); // end ProxyIdea
 }); // end ideas

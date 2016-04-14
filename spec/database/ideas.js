@@ -27,14 +27,14 @@ describe('ideas', function() {
     const id = '_test_' + Math.random();
     expect(ideas.units.memory.has(id)).to.equal(false);
     return ideas.load(id).then(function(proxy) {
-      expect(proxy).to.deep.equal({id:id});
+      expect(proxy.id).to.equal(id);
       expect(ideas.units.memory.has(proxy.id)).to.equal(true);
     });
   });
 
   it('proxy', function() {
     return ideas.proxy('_test').then(function(proxy) {
-      expect(proxy).to.deep.equal({id:'_test'});
+      expect(proxy.id).to.equal('_test');
       expect(proxy.constructor.name).to.equal('ProxyIdea');
     });
   });
@@ -43,7 +43,7 @@ describe('ideas', function() {
     const id = '_test_' + Math.random();
     expect(ideas.units.memory.has(id)).to.equal(false);
     return ideas.save(id).then(function(proxy) {
-      expect(proxy).to.deep.equal({id:id});
+      expect(proxy.id).to.equal(id);
       expect(ideas.units.memory.has(proxy.id)).to.equal(false);
       expect(ideas.boundaries.database.data).to.not.property(proxy.id);
     });

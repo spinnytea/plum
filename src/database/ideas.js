@@ -25,10 +25,16 @@ class ProxyIdea {
   constructor(id) { this.id = id; }
   data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
   setData(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
-  links(link) { return exports.load(this.id).then(()=>(memory.get(this.id).links[link.name] || []).map(function(id) { return new ProxyIdea(id); })); }
-  // addLink(link, idea) {}
+  links(link) { return exports.load(this.id).then(()=>Object.keys(memory.get(this.id).links[link.name] || {}).map(function(id) { return new ProxyIdea(id); })); }
   // removeLink(link, idea) {}
 }
+ProxyIdea.prototype.addLink = bluebird.coroutine(function*(link, idea) {
+  const id = getID(idea);
+  yield exports.load(id);
+  yield exports.load(this.id);
+  (memory.get(this.id).links[link.name] = memory.get(this.id).links[link.name] || {})[id] = {};
+  (memory.get(id).links[link.opposite.name] = memory.get(id).links[link.opposite.name] || {})[this.id] = {};
+});
 
 
 exports.create = bluebird.coroutine(function*(data) {
