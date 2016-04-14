@@ -28,72 +28,62 @@ class ProxyIdea {
 }
 
 
-exports.create = function(data) {
-  return ids.next(NEXT_ID).then(function(id) {
-    memory.set(id, new CoreIdea(id, _.cloneDeep(data)));
-    if(data) return exports.save(id);
-    else return Promise.resolve(new ProxyIdea(id));
-  });
-};
+exports.create = bluebird.coroutine(function*(data) {
+  const id = yield ids.next(NEXT_ID);
+  memory.set(id, new CoreIdea(id, _.cloneDeep(data)));
+  if(data) return exports.save(id);
+  else return Promise.resolve(new ProxyIdea(id));
+});
 
-exports.load = function(idea) {
+exports.load = bluebird.coroutine(function*(idea) {
   const proxy = new ProxyIdea(getID(idea));
-  if(memory.has(proxy.id)) {
-    return Promise.resolve(proxy);
-  } else {
-    return Promise.all([
-      loadFn(proxy.id, 'data'),
-      loadFn(proxy.id, 'links'),
-    ]).then(function() { // TODO use destructuring
-      memory.set(proxy.id, new CoreIdea(proxy.id, arguments[0], arguments[1]));
-      return proxy;
-    });
+
+  if(!memory.has(proxy.id)) {
+    const data = yield loadFn(proxy.id, 'data');
+    const links = yield loadFn(proxy.id, 'links');
+    memory.set(proxy.id, new CoreIdea(proxy.id, data, links));
   }
-};
+
+  return Promise.resolve(proxy);
+});
 exports.proxy = function(idea) {
   return Promise.resolve(new ProxyIdea(idea));
 };
 
-exports.save = function(idea) {
+exports.save = bluebird.coroutine(function*(idea) {
   const proxy = new ProxyIdea(getID(idea));
   const core = memory.get(proxy.id);
 
   if(core) {
-    return Promise.all([
-      saveFn(proxy.id, 'data', core.data),
-      saveFn(proxy.id, 'links', core.links)
-    ]).then(() => proxy);
-  } else {
-    return Promise.resolve(proxy);
+    yield saveFn(proxy.id, 'data', core.data);
+    yield saveFn(proxy.id, 'links', core.links);
   }
-};
+
+  return Promise.resolve(proxy);
+});
 
 // XXX exports.delete
-exports.close = function(idea) {
-  return exports.save(idea).then(function(proxy) {
-    memory.delete(proxy.id);
-    return proxy;
-  });
-};
+exports.close = bluebird.coroutine(function*(idea) {
+  const proxy = yield exports.save(idea);
+  memory.delete(proxy.id);
+  return proxy;
+});
 
 /* allows for hard coded context ideas */
-exports.context = function(name) {
+exports.context = bluebird.coroutine(function*(name) {
   if(!name) throw new Error('must provide a name');
+  const context = yield contextPromise;
+  const id = context[name];
 
-  return contextPromise.then(function(context) {
-    const id = context[name];
-    if(id) {
-      return Promise.resolve(new ProxyIdea(id));
-    } else {
-      return bluebird.coroutine(function*() {
-        let proxy = yield exports.create({name:name});
-        context[name] = proxy.id;
-        yield config.set('ideas', 'context', context);
-        return proxy;
-      })();
-    }
-  });
-};
+  if(id) {
+    return Promise.resolve(new ProxyIdea(id));
+  } else {
+    let proxy = yield exports.create({name:name});
+    context[name] = proxy.id;
+    yield config.set('ideas', 'context', context);
+    return proxy;
+  }
+});
 
 
 Object.defineProperty(exports, 'units', { value: {} });
