@@ -23,8 +23,11 @@ class CoreIdea {
 
 class ProxyIdea {
   constructor(id) { this.id = id; }
-  update(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
   data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
+  setData(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
+  // links(link) {}
+  // addLink(link, idea) {}
+  // removeLink(link, idea) {}
 }
 
 
@@ -62,7 +65,7 @@ exports.save = bluebird.coroutine(function*(idea) {
   return Promise.resolve(proxy);
 });
 
-// XXX exports.delete
+// XXX exports.delete (wait until we have links)
 exports.close = bluebird.coroutine(function*(idea) {
   const proxy = yield exports.save(idea);
   memory.delete(proxy.id);
