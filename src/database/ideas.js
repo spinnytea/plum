@@ -25,7 +25,7 @@ class ProxyIdea {
   constructor(id) { this.id = id; }
   data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
   setData(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
-  // links(link) {}
+  links(link) { return exports.load(this.id).then(()=>(memory.get(this.id).links[link.name] || []).map(function(id) { return new ProxyIdea(id); })); }
   // addLink(link, idea) {}
   // removeLink(link, idea) {}
 }
@@ -92,6 +92,7 @@ exports.context = bluebird.coroutine(function*(name) {
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.memory = memory;
 exports.units.getID = getID;
+exports.units.ProxyIdea = ProxyIdea;
 
 function getID(idea) {
   if(!idea) throw new TypeError('can only load ideas');
