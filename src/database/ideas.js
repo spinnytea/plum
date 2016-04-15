@@ -43,8 +43,7 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   let ls = memory.get(this.id).links;
   let list = ls[link.name];
   delete list[idea.id];
-  // TODO use a faster 'has keys' function
-  if(Object.keys(list).length === 0) {
+  if(isEmpty(list)) {
     delete ls[link.name];
   }
 
@@ -52,7 +51,7 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   ls = memory.get(idea.id).links;
   list = ls[link.opposite.name];
   delete list[this.id];
-  if(Object.keys(list).length === 0) {
+  if(isEmpty(list)) {
     delete ls[link.opposite.name];
   }
 });
@@ -137,6 +136,7 @@ exports.context = bluebird.coroutine(function*(name) {
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.memory = memory;
 exports.units.getID = getID;
+exports.units.isEmpty = isEmpty;
 exports.units.ProxyIdea = ProxyIdea;
 
 function getID(idea) {
@@ -146,6 +146,14 @@ function getID(idea) {
   return id;
 }
 
+// super fast empty checking
+// Object.keys(myObject).length === 0 is terribly slow
+function isEmpty(myObject) {
+  for(var key in myObject)
+    if (myObject.hasOwnProperty(key))
+      return false;
+  return true;
+}
 
 Object.defineProperty(exports, 'boundaries', { value: {} });
 exports.boundaries.database = { data: {}, links: {} }; // for memorySave/memoryLoad
