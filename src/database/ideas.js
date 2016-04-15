@@ -14,6 +14,10 @@ let loadFn = memoryLoad;
 let saveFn = memorySave;
 
 
+/*
+ * this is the singleton that we will keep an internal reference to
+ * it's basically just a named structure
+ */
 class CoreIdea {
   constructor(id, data, links) {
     this.id = id;
@@ -22,6 +26,13 @@ class CoreIdea {
   }
 }
 
+/*
+ * ProxyIdea is an object that only stores the ID
+ * this makes it easy to pass around as a data object, to serialize, to load
+ * essentially, its just an object { id: 'x' }
+ * we can JSON.stringify; we can exports.proxy
+ * The functions that are on ProxyIdea reference a singleton that stores the data
+ */
 class ProxyIdea {
   constructor(id) { this.id = id; }
   data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
@@ -149,7 +160,7 @@ function getID(idea) {
 // super fast empty checking
 // Object.keys(myObject).length === 0 is terribly slow
 function isEmpty(myObject) {
-  for(var key in myObject)
+  for(const key in myObject)
     if (myObject.hasOwnProperty(key))
       return false;
   return true;

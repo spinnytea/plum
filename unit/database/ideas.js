@@ -33,6 +33,7 @@ describe('ideas', function() {
     const getID = ideas.units.getID;
 
     expect(getID('_test')).to.equal('_test');
+    expect(getID({id: '_test'})).to.equal('_test'); // just in case
     expect(getID(new ideas.units.ProxyIdea('_test'))).to.equal('_test');
 
     expect(function() { getID(); }).to.throw(TypeError);
@@ -97,6 +98,14 @@ describe('ideas', function() {
         list = yield proxy2.links(link.opposite);
         expect(list).to.deep.equal([]);
       })();
+    });
+
+    // just in case we try to serialize the data
+    it('JSON.stringify', function() {
+      const str = JSON.stringify(new ideas.units.ProxyIdea('_test'));
+      const obj = {id:'_test'};
+      expect(str).to.equal(JSON.stringify(obj));
+      expect(JSON.parse(str)).to.deep.equal(obj);
     });
   }); // end ProxyIdea
 }); // end ideas
