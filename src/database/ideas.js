@@ -5,6 +5,7 @@ const _ = require('lodash');
 const bluebird = require('bluebird');
 const config = require('../config');
 const ids = require('../ids');
+const links = require('./links');
 
 const memory = new Map();
 const NEXT_ID = 'ideas';
@@ -91,11 +92,29 @@ exports.save = bluebird.coroutine(function*(idea) {
   return Promise.resolve(proxy);
 });
 
-// XXX exports.delete (wait until we have links)
 exports.close = bluebird.coroutine(function*(idea) {
   const proxy = yield exports.save(idea);
   memory.delete(proxy.id);
   return proxy;
+});
+
+exports.delete = bluebird.coroutine(function*(idea) {
+  const proxy = yield exports.load(idea);
+
+  // remove all the links
+  const ls = memory.get(proxy.id).links;
+  for(const linkName of Object.keys(ls)) {
+    const link = links.get(linkName);
+    for(const id of Object.keys(ls[linkName]))
+      yield proxy.removeLink(link, id);
+  }
+
+  // clear/delete saved data
+  yield saveFn(proxy.id, 'data', undefined);
+  yield saveFn(proxy.id, 'links', undefined);
+
+  // remove local memory
+  memory.delete(proxy.id);
 });
 
 /* allows for hard coded context ideas */
@@ -137,7 +156,7 @@ function memoryLoad(id, which) {
   return Promise.resolve(exports.boundaries.database[which][id]);
 }
 function memorySave(id, which, obj) {
-  if(obj) exports.boundaries.database[which][id] = obj;
-  else delete exports.boundaries.database[which][id];
+  if(obj === undefined) delete exports.boundaries.database[which][id];
+  else exports.boundaries.database[which][id] = obj;
   return Promise.resolve();
 }

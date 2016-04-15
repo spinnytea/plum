@@ -7,12 +7,13 @@ const _ = require('lodash');
 
 // after working with this for a while, links.list[name] is more consistent than links.list.name
 // links.get(name) seems like the natural way to go
-exports.get = (name => exports.units.list[name]);
+exports.get = (name => exports.units.list[name] || oppList[name]);
 
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.list = {};
 exports.units.create = create;
+const oppList = {};
 
 function create(name, options) {
   options = _.merge({
@@ -30,6 +31,7 @@ function create(name, options) {
     link.opposite = link;
   }
 
+  oppList[link.opposite.name] = link.opposite;
   return (exports.units.list[name] = Object.freeze(link));
 }
 
