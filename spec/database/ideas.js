@@ -121,6 +121,10 @@ describe('ideas', function() {
     });
   });
 
+  it('context (invalid arg)', function() {
+    return expect(ideas.context()).to.eventually.be.rejectedWith(TypeError);
+  });
+
   //
 
   describe('boundaries', function() {

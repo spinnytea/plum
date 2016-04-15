@@ -10,7 +10,6 @@ var rm = require('gulp-rm');
 // 'nyan' is the best, so that is the default
 // 'list' is definitely has it's merits
 // 'json' and 'json-stream' are pretty neat
-// XXX what about HTMLCov
 var reporter = 'nyan';
 process.argv.forEach(function(val, idx, array) {
   if(val === '-r' && array[idx+1])

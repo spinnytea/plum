@@ -119,7 +119,7 @@ exports.delete = bluebird.coroutine(function*(idea) {
 
 /* allows for hard coded context ideas */
 exports.context = bluebird.coroutine(function*(name) {
-  if(!name) throw new Error('must provide a name');
+  if(!name) throw new TypeError('must provide a name');
   const context = yield contextPromise;
   const id = context[name];
 
