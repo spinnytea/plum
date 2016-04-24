@@ -6,7 +6,7 @@ const links = require('../../src/database/links');
 
 describe('ideas', function() {
   it('init', function() {
-    expect(Object.keys(ideas.units)).to.deep.equal(['memory', 'getID', 'isEmpty', 'ProxyIdea']);
+    expect(Object.keys(ideas.units)).to.deep.equal(['memory', 'getID', 'ProxyIdea']);
   });
 
   it('memory', function() {
@@ -39,15 +39,6 @@ describe('ideas', function() {
     expect(function() { getID(); }).to.throw(TypeError);
     expect(function() { getID(1234); }).to.throw(TypeError);
     expect(function() { getID({}); }).to.throw(TypeError);
-  });
-
-  it('isEmpty', function() {
-    const isEmpty = ideas.units.isEmpty;
-
-    expect(isEmpty({})).to.equal(true);
-    expect(isEmpty([])).to.equal(true);
-    expect(isEmpty({a:1})).to.equal(false);
-    expect(isEmpty([1])).to.equal(false);
   });
 
   describe('ProxyIdea', function() {

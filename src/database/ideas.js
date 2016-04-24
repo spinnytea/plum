@@ -6,6 +6,7 @@ const bluebird = require('bluebird');
 const config = require('../config');
 const ids = require('../ids');
 const links = require('./links');
+const utils = require('../utils');
 
 const memory = new Map();
 const NEXT_ID = 'ideas';
@@ -54,7 +55,7 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   let ls = memory.get(this.id).links;
   let list = ls[link.name];
   delete list[idea.id];
-  if(isEmpty(list)) {
+  if(utils.isEmpty(list)) {
     delete ls[link.name];
   }
 
@@ -62,7 +63,7 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   ls = memory.get(idea.id).links;
   list = ls[link.opposite.name];
   delete list[this.id];
-  if(isEmpty(list)) {
+  if(utils.isEmpty(list)) {
     delete ls[link.opposite.name];
   }
 });
@@ -147,7 +148,6 @@ exports.context = bluebird.coroutine(function*(name) {
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.memory = memory;
 exports.units.getID = getID;
-exports.units.isEmpty = isEmpty;
 exports.units.ProxyIdea = ProxyIdea;
 
 function getID(idea) {
@@ -155,15 +155,6 @@ function getID(idea) {
   const id = idea.id || idea;
   if(!_.isString(id)) throw new TypeError('can only load ideas');
   return id;
-}
-
-// super fast empty checking
-// Object.keys(myObject).length === 0 is terribly slow
-function isEmpty(myObject) {
-  for(const key in myObject)
-    if (myObject.hasOwnProperty(key))
-      return false;
-  return true;
 }
 
 Object.defineProperty(exports, 'boundaries', { value: {} });
