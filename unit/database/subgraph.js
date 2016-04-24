@@ -8,19 +8,60 @@ describe('subgraph', function() {
   });
 
   describe('LazyCopyObject', function() {
-    describe('get local', function() {
-      it.skip('found');
+    it('set', function() {
+      const lco = new subgraph.units.LazyCopyObject();
+      const key = '0';
+      expect(lco.data[key]).to.equal(undefined);
 
-      it.skip('not found');
-    }); // end get local
+      lco.set('0', 0);
 
-    describe('get parent', function() {
-      it.skip('found');
+      expect(lco.data[key]).to.equal(0);
+      expect(lco.get(key)).to.equal(0);
+    });
 
-      it.skip('not found');
+    describe('get', function() {
+      describe('no parent', function() {
+        const lco = new subgraph.units.LazyCopyObject();
+        lco.data['0'] = 0;
 
-      it.skip('overwritten locally');
-    }); // end get parent
+        it('found', function() {
+          expect(lco.get('0')).to.equal(0);
+        });
+
+        it('not found', function() {
+          expect(lco.get('1')).to.equal(undefined);
+        });
+      }); // end no parent
+
+      describe('has parent', function() {
+        const lco = new subgraph.units.LazyCopyObject();
+        const par = new subgraph.units.LazyCopyObject();
+        lco.parent = par;
+        lco.data['c'] = 0;
+        par.data['p'] = 1;
+
+        it('found local', function() {
+          expect(lco.get('c')).to.equal(0);
+        });
+
+        it('found in parent', function() {
+          expect(lco.get('p')).to.equal(1);
+        });
+
+        it('not found', function() {
+          expect(lco.get('dne')).to.equal(undefined);
+        });
+
+        it('overwritten locally', function() {
+          const over = new subgraph.units.LazyCopyObject();
+          over.parent = lco;
+          over.data['c'] = 2;
+          over.data['p'] = 3;
+          expect(over.get('c')).to.equal(2);
+          expect(over.get('p')).to.equal(3);
+        });
+      }); // end has parent
+    }); // end get
   }); // end LazyCopyObject
 
   describe('Subgraph', function() {

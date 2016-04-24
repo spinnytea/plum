@@ -20,6 +20,10 @@ class LazyCopyObject {
     this.data = {};
     this.parent = undefined;
   }
+  
+  set(id, data) {
+    this.data[id] = data;
+  }
 
   get(id) {
     if(id in this.data)
