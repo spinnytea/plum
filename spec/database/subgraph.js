@@ -4,6 +4,6 @@ const subgraph = require('../../src/database/subgraph');
 
 describe('subgraph', function() {
   it('init', function() {
-    expect(Object.keys(subgraph)).to.deep.equal([]);
+    expect(Object.keys(subgraph)).to.deep.equal(['matcher']);
   });
 }); // end subgraph

@@ -5,10 +5,6 @@ const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
 
 describe('ideas', function() {
-  it('init', function() {
-    expect(Object.keys(ideas.units)).to.deep.equal(['memory', 'getID', 'ProxyIdea']);
-  });
-
   it('memory', function() {
     // okay, I know, this is just testing maps
     // but this is how memory is used

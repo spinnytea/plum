@@ -3,10 +3,6 @@ const expect = require('chai').expect;
 const ids = require('../src/ids');
 
 describe('ids', function() {
-  it('init', function() {
-    expect(Object.keys(ids.units)).to.deep.equal(['tokens', 'replaceAt', 'increment']);
-  });
-
   it('tokens', function() {
     const tokens = ids.units.tokens;
 

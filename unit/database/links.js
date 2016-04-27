@@ -3,14 +3,6 @@ const expect = require('chai').expect;
 const links = require('../../src/database/links');
 
 describe('links', function() {
-  it('init', function() {
-    expect(Object.keys(links.units)).to.deep.equal(['list', 'create']);
-  });
-
-  it('list', function() {
-    expect(Object.keys(links.units.list)).to.deep.equal(['thought_description', '_test__undirected_', 'type_of', 'property', 'context']);
-  });
-
   describe('create', function() {
     const td = links.get('thought_description');
     const tu = links.get('_test__undirected_');

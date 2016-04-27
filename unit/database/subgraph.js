@@ -3,10 +3,6 @@ const expect = require('chai').expect;
 const subgraph = require('../../src/database/subgraph');
 
 describe('subgraph', function() {
-  it('init', function() {
-    expect(Object.keys(subgraph.units)).to.deep.equal(['LazyCopyObject', 'Subgraph', 'copyParentyThing']);
-  });
-
   describe('LazyCopyObject', function() {
     it('invalid constructor args', function() {
       expect(function() { new subgraph.units.LazyCopyObject(false); }).to.throw(TypeError); // jshint ignore:line
@@ -79,6 +75,26 @@ describe('subgraph', function() {
       const copy = orig.copy();
       expect(copy).to.deep.equal(orig);
     });
+    
+    describe('addVertex', function() {
+      let sg;
+      beforeEach(function() { sg = new subgraph.units.Subgraph(); });
+
+      it('add filler', function() {
+        sg.addVertex(subgraph.matcher.filler);
+
+        expect(sg._vertexCount).to.equal(1);
+        expect(sg.concrete).to.equal(false);
+        expect(sg._match[0]).to.deep.equal({
+          matcher: subgraph.matcher.filler,
+          data: undefined,
+          options: {
+            transitionable: false,
+            variable: false
+          }
+        });
+      });
+    }); // end addVertex
   }); // end Subgraph
 
   describe('copyParentyThing', function() {

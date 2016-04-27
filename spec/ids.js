@@ -5,10 +5,6 @@ const config = require('../src/config');
 const ids = require('../src/ids');
 
 describe('ids', function() {
-  it('init', function() {
-    expect(Object.keys(ids)).to.deep.equal(['anonymous', 'next']);
-  });
-
   const NEXT_ID = 'my_key';
   function cleanup(result) {
     if(config.units.data.hasOwnProperty('ids')) {

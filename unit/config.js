@@ -3,10 +3,6 @@ const expect = require('chai').expect;
 const config = require('../src/config');
 
 describe('config', function() {
-  it('init', function() {
-    expect(Object.keys(config.units)).to.deep.equal(['data', 'getValue', 'setValue']);
-  });
-
   it('data', function() { /* there is nothing to test */ });
 
   describe('getValue', function() {

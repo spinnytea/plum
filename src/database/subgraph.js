@@ -1,5 +1,6 @@
 'use strict';
 const _ = require('lodash');
+const ideas = require('./ideas');
 const utils = require('../utils');
 
 // this is an overlay on the idea database
@@ -70,6 +71,56 @@ class Subgraph {
 
     return copy;
   }
+
+  // TODO flatten - flatten the LazyCopyObjects - call once we are satisfied with a Subgraph
+
+  // add a vertex to the graph
+  // this only specifies match data
+  // the other parts (ideas / data) need to be found later
+  //
+  // @param matcher: exports.matcher or equivalent
+  // @param data: passed to the matcher
+  // @param options: {
+  //   transitionable: boolean, // if true, this part of a transition (subgraph.rewrite, blueprints, etc; subgraph.rewrite(transitions);)
+  //                            // it means that we are intending to change the value
+  //   variable: boolean, // if true, this should use a different object for the match data
+  //                      // specifically, use vertex[data].data instead of match data
+  //                      // (it doesn't make sense to use this with matcher.filler)
+  // }
+  addVertex(matcher, data, options) {
+    // TODO do these NEED to be specified? can we leave them undefined?
+    options = _.merge({
+      transitionable: false,
+      variable: false
+    }, options);
+
+    if(!matcher || matcher !== exports.matcher[matcher.name])
+      throw new RangeError('invalid matcher');
+    if(options.variable && this.getMatch(data) === undefined)
+      throw new RangeError('variable target (match.data) must already be a vertex');
+    if(matcher !== exports.matcher.filler && data === undefined)
+      throw new Error('match data must be defined');
+    if(matcher === exports.matcher.substring)
+      data.value = data.value.toLowerCase();
+
+    var id = this._vertexCount + '';
+    this._vertexCount++;
+
+    this._match[id] = {
+      matcher: matcher,
+      data: data,
+      options: options
+    };
+
+    if(matcher === exports.matcher.id) {
+      this._match[id].data = (data.id || data);
+      this._idea[id] = ideas.proxy(data);
+    } else {
+      this.concrete = false;
+    }
+
+    return id;
+  }
 }
 
 class LazyCopyObject {
@@ -95,6 +146,35 @@ class LazyCopyObject {
     return undefined;
   }
 }
+
+// matchers
+// any matcher used must be in this list, and the function must have the same name as the property
+// custom matcher can be created at started like links
+exports.matcher = {
+  id: function id(idea, matchData) {
+    // XXX this could be an empty object
+    return matchData === idea.id;
+  },
+  filler: function filler() {
+    return true;
+  },
+
+  exact: function exact(data, matchData) {
+    return _.isEqual(data, matchData);
+  },
+  similar: function similar(data, matchData) {
+    // matchData should be contained within data
+    return _.isEqual(data, _.merge(_.cloneDeep(data), matchData));
+  },
+  substring: function substring(data, matchData) {
+    if(matchData.path && matchData.path.length)
+      data = _.property(matchData.path)(data);
+    if(!_.isString(data))
+      return false;
+    return data.toLowerCase().indexOf(matchData.value) !== -1;
+  },
+};
+
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.LazyCopyObject = LazyCopyObject;
