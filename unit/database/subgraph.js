@@ -74,7 +74,11 @@ describe('subgraph', function() {
       expect(sg).to.have.property('_match');
     });
 
-    it.skip('subgraph');
+    it('copy', function() {
+      const orig = new subgraph.units.Subgraph();
+      const copy = orig.copy();
+      expect(copy).to.deep.equal(orig);
+    });
   }); // end Subgraph
 
   describe('copyParentyThing', function() {

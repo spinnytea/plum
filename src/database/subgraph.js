@@ -1,4 +1,5 @@
 'use strict';
+const _ = require('lodash');
 const utils = require('../utils');
 
 // this is an overlay on the idea database
@@ -47,6 +48,27 @@ class Subgraph {
     //   sg._match.every(function(v, id) { return (id in sg._idea); })
     //   Object.keys(sg._match).deep.equals(Object.keys(sg._idea))
     this.concrete = true;
+  }
+
+  copy() {
+    let copy = new Subgraph();
+
+    // the ideas should/will never change
+    // so we can reference the original
+    // this is what we are trying to pin down, so as we do so we can copy them directly
+    _.assign(copy._idea, this._idea);
+
+    // do the parent copy for the applicable values
+    copyParentyThing(this, copy, '_match');
+    copyParentyThing(this, copy, '_data');
+    copyParentyThing(this, copy, '_edges');
+
+    // straight copy the primitives
+    copy._vertexCount = this._vertexCount;
+    copy._edgeCount = this._edgeCount;
+    copy.concrete = this.concrete;
+
+    return copy;
   }
 }
 
