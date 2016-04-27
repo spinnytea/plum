@@ -113,7 +113,7 @@ class Subgraph {
     };
 
     if(matcher === exports.matcher.id) {
-      this._match[id].data = (data.id || data);
+      this._match[id].data = (data.id || data); // unwrap the id
       this._idea[id] = ideas.proxy(data);
     } else {
       this.concrete = false;

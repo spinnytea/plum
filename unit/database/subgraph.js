@@ -80,7 +80,16 @@ describe('subgraph', function() {
       let sg;
       beforeEach(function() { sg = new subgraph.units.Subgraph(); });
 
-      it('add filler', function() {
+      it('invalid matcher', function() {
+        expect(function() { sg.addVertex(null); }).to.throw('invalid matcher');
+        expect(function() { sg.addVertex(function() {}); }).to.throw('invalid matcher');
+      });
+
+      it('no data in non-filler', function() {
+        expect(function() { sg.addVertex(subgraph.matcher.id); }).to.throw('match data must be defined');
+      });
+
+      it('filler', function() {
         sg.addVertex(subgraph.matcher.filler);
 
         expect(sg._vertexCount).to.equal(1);
@@ -88,6 +97,30 @@ describe('subgraph', function() {
         expect(sg._match[0]).to.deep.equal({
           matcher: subgraph.matcher.filler,
           data: undefined,
+          options: {
+            transitionable: false,
+            variable: false
+          }
+        });
+      });
+
+      it('id', function() {
+        sg.addVertex(subgraph.matcher.id, { id: '_test' });
+        sg.addVertex(subgraph.matcher.id, '_test2');
+
+        expect(sg._vertexCount).to.equal(2);
+        expect(sg.concrete).to.equal(true);
+        expect(sg._match[0]).to.deep.equal({
+          matcher: subgraph.matcher.id,
+          data: '_test',
+          options: {
+            transitionable: false,
+            variable: false
+          }
+        });
+        expect(sg._match[1]).to.deep.equal({
+          matcher: subgraph.matcher.id,
+          data: '_test2',
           options: {
             transitionable: false,
             variable: false
