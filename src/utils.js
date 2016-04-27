@@ -6,7 +6,8 @@
 // Object.keys(myObject).length === 0 is terribly slow
 exports.isEmpty = function isEmpty(myObject) {
   for(const key in myObject)
-    if (myObject.hasOwnProperty(key))
+    /* istanbul ignore else */
+    if(myObject.hasOwnProperty(key))
       return false;
   return true;
 };

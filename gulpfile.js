@@ -57,7 +57,7 @@ gulp.task('test', ['lint'], function() {
     .pipe(mocha({reporter: reporter}));
 });
 
-gulp.task('coverage', [], function (cb) {
+gulp.task('coverage', ['lint'], function (cb) {
   gulp.src(source)
     .pipe(istanbul({ includeUntested: true })) // Covering files
     .pipe(istanbul.hookRequire()) // Force `require` to return covered files
