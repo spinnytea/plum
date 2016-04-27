@@ -4,10 +4,14 @@ const subgraph = require('../../src/database/subgraph');
 
 describe('subgraph', function() {
   it('init', function() {
-    expect(Object.keys(subgraph.units)).to.deep.equal(['LazyCopyObject', 'Subgraph']);
+    expect(Object.keys(subgraph.units)).to.deep.equal(['LazyCopyObject', 'Subgraph', 'copyParentyThing']);
   });
 
   describe('LazyCopyObject', function() {
+    it('invalid constructor args', function() {
+      expect(function() { new subgraph.units.LazyCopyObject(false); }).to.throw(TypeError); // jshint ignore:line
+    });
+
     it('set', function() {
       const lco = new subgraph.units.LazyCopyObject();
       const key = '0';
@@ -72,4 +76,45 @@ describe('subgraph', function() {
 
     it.skip('subgraph');
   }); // end Subgraph
+
+  describe('copyParentyThing', function() {
+    let orig;
+    let copy;
+    const key = 'some_key';
+    const copyParentyThing = subgraph.units.copyParentyThing;
+    beforeEach(function() {
+      orig = {};
+      copy = {};
+      orig[key] = new subgraph.units.LazyCopyObject();
+      copy[key] = new subgraph.units.LazyCopyObject();
+    });
+    afterEach(function() {
+      // when we set values on them, they should be independent
+      orig[key].set('a', 11);
+      copy[key].set('a', 12);
+      expect(orig[key].get('a')).to.equal(11);
+      expect(copy[key].get('a')).to.equal(12);
+    });
+
+    it('old is empty', function() {
+      copyParentyThing(orig, copy, key);
+
+      expect(orig[key].parent).to.equal(undefined);
+      expect(copy[key].parent).to.equal(undefined);
+    });
+
+    it('old is not empty', function() {
+      orig[key].set('a', 1);
+
+      copyParentyThing(orig, copy, key);
+
+      expect(orig[key].parent).to.not.equal(undefined);
+      expect(copy[key].parent).to.not.equal(undefined);
+      expect(orig[key].parent).to.equal(copy[key].parent);
+
+      // they should retain the old values
+      expect(orig[key].get('a')).to.equal(1);
+      expect(copy[key].get('a')).to.equal(1);
+    });
+  }); // end copyParentyThing
 }); // end subgraph
