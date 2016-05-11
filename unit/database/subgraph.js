@@ -134,12 +134,13 @@ describe('subgraph', function() {
       });
       
       it.skip('options');
+
+      it.skip('invalid options');
     }); // end addVertex
 
     describe('addEdge', function() {
       let sg, v1, v2;
       const link = links.get('thought_description');
-      const invalid_vertex = 100;
       beforeEach(function() {
         sg = new subgraph.units.Subgraph();
         v1 = sg.addVertex(subgraph.matcher.filler);
@@ -147,17 +148,21 @@ describe('subgraph', function() {
       });
 
       it('invalid src', function() {
-        expect(function() { sg.addEdge(invalid_vertex, link, v2); }).to.throw(RangeError);
+        expect(function() { sg.addEdge('banana', link, v2); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(-1, link, v2); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(2, link, v2); }).to.throw(RangeError);
       });
 
       it('invalid dst', function() {
-        expect(function() { sg.addEdge(v1, link, invalid_vertex); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(v1, link, 'banana'); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(v1, link, -1); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(v1, link, 2); }).to.throw(RangeError);
       });
 
       it('invalid link', function() {
-        expect(function() { sg.addEdge(v1, null, v2); }).to.throw(RangeError);
-        expect(function() { sg.addEdge(v1, {}, v2); }).to.throw(RangeError);
-        expect(function() { sg.addEdge(v1, { name: '__foobar_!@#$%^&*()__' }, v2); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(v1, null, v2); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(v1, {}, v2); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(v1, { name: '__foobar_!@#$%^&*()__' }, v2); }).to.throw(TypeError);
       });
 
       it('basic', function() {
@@ -194,7 +199,21 @@ describe('subgraph', function() {
         });
       });
       
-      it.skip('options');
+      it('options', function() {
+        const o = {
+          pref: 1,
+          transitive: true,
+          transitionable: true
+        };
+        const e = sg.addEdge(v1, link, v2, o);
+        expect(sg._edges[e].options).to.deep.equal(o);
+      });
+
+      it('invalid options', function() {
+        expect(function() { sg.addEdge(v1, link, v2, { pref: 'banana' }); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(v1, link, v2, { transitive: 'banana' }); }).to.throw(TypeError);
+        expect(function() { sg.addEdge(v1, link, v2, { transitionable: 'banana' }); }).to.throw(TypeError);
+      });
     }); // end addEdge
   }); // end Subgraph
 

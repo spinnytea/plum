@@ -141,12 +141,23 @@ class Subgraph {
       transitionable: false
     }, options);
 
-    if(+src >= this._vertexCount)
+    if(!_.isNumber(src))
+      throw new TypeError('src not a vertex');
+    if(src >= this._vertexCount || src < 0)
       throw new RangeError('src not a vertex');
-    if(+dst >= this._vertexCount)
+    if(!_.isNumber(dst))
+      throw new TypeError('src not a vertex');
+    if(dst >= this._vertexCount || dst < 0)
       throw new RangeError('dst not a vertex');
     if(!link || !link.name || !links.get(link.name))
-      throw new RangeError('invalid link');
+      throw new TypeError('invalid link');
+
+    if(!_.isNumber(options.pref))
+      throw new TypeError('invalid options.pref');
+    if(!_.isBoolean(options.transitive))
+      throw new TypeError('invalid options.transitive');
+    if(!_.isBoolean(options.transitionable))
+      throw new TypeError('invalid options.transitionable');
 
     const id = this._edgeCount;
     this._edgeCount++;
