@@ -1,5 +1,6 @@
 'use strict';
 const expect = require('chai').expect;
+const links = require('../../src/database/links');
 const subgraph = require('../../src/database/subgraph');
 
 describe('subgraph', function() {
@@ -10,10 +11,10 @@ describe('subgraph', function() {
 
     it('set', function() {
       const lco = new subgraph.units.LazyCopyObject();
-      const key = '0';
+      const key = 0;
       expect(lco.data[key]).to.equal(undefined);
 
-      lco.set('0', 0);
+      lco.set(key, 0);
 
       expect(lco.data[key]).to.equal(0);
       expect(lco.get(key)).to.equal(0);
@@ -22,14 +23,15 @@ describe('subgraph', function() {
     describe('get', function() {
       describe('no parent', function() {
         const lco = new subgraph.units.LazyCopyObject();
-        lco.data['0'] = 0;
+        const key = 0;
+        lco.data[key] = 0;
 
         it('found', function() {
-          expect(lco.get('0')).to.equal(0);
+          expect(lco.get(key)).to.equal(0);
         });
 
         it('not found', function() {
-          expect(lco.get('1')).to.equal(undefined);
+          expect(lco.get(1)).to.equal(undefined);
         });
       }); // end no parent
 
@@ -66,7 +68,7 @@ describe('subgraph', function() {
 
   describe('Subgraph', function() {
     it('construct', function() {
-      var sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.units.Subgraph();
       expect(sg).to.have.property('_match');
     });
 
@@ -90,8 +92,9 @@ describe('subgraph', function() {
       });
 
       it('filler', function() {
-        sg.addVertex(subgraph.matcher.filler);
+        const v = sg.addVertex(subgraph.matcher.filler);
 
+        expect(v).to.equal(0);
         expect(sg._vertexCount).to.equal(1);
         expect(sg.concrete).to.equal(false);
         expect(sg._match[0]).to.deep.equal({
@@ -105,9 +108,11 @@ describe('subgraph', function() {
       });
 
       it('id', function() {
-        sg.addVertex(subgraph.matcher.id, { id: '_test' });
-        sg.addVertex(subgraph.matcher.id, '_test2');
+        const v1 = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+        const v2 = sg.addVertex(subgraph.matcher.id, '_test2');
 
+        expect(v1).to.equal(0);
+        expect(v2).to.equal(1);
         expect(sg._vertexCount).to.equal(2);
         expect(sg.concrete).to.equal(true);
         expect(sg._match[0]).to.deep.equal({
@@ -127,12 +132,75 @@ describe('subgraph', function() {
           }
         });
       });
+      
+      it.skip('options');
     }); // end addVertex
+
+    describe('addEdge', function() {
+      let sg, v1, v2;
+      const link = links.get('thought_description');
+      const invalid_vertex = 100;
+      beforeEach(function() {
+        sg = new subgraph.units.Subgraph();
+        v1 = sg.addVertex(subgraph.matcher.filler);
+        v2 = sg.addVertex(subgraph.matcher.filler);
+      });
+
+      it('invalid src', function() {
+        expect(function() { sg.addEdge(invalid_vertex, link, v2); }).to.throw(RangeError);
+      });
+
+      it('invalid dst', function() {
+        expect(function() { sg.addEdge(v1, link, invalid_vertex); }).to.throw(RangeError);
+      });
+
+      it('invalid link', function() {
+        expect(function() { sg.addEdge(v1, null, v2); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(v1, {}, v2); }).to.throw(RangeError);
+        expect(function() { sg.addEdge(v1, { name: '__foobar_!@#$%^&*()__' }, v2); }).to.throw(RangeError);
+      });
+
+      it('basic', function() {
+        const e = sg.addEdge(v1, link, v2);
+
+        expect(e).to.equal(0);
+        expect(sg._edgeCount).to.equal(1);
+        expect(sg._edges[0]).to.deep.equal({
+          src: v1,
+          link: link,
+          dst: v2,
+          options: {
+            pref: 0,
+            transitive: false,
+            transitionable: false
+          }
+        });
+      });
+      
+      it('opposite', function() {
+        const e = sg.addEdge(v1, link.opposite, v2);
+
+        expect(e).to.equal(0);
+        expect(sg._edgeCount).to.equal(1);
+        expect(sg._edges[0]).to.deep.equal({
+          src: v2,
+          link: link,
+          dst: v1,
+          options: {
+            pref: 0,
+            transitive: false,
+            transitionable: false
+          }
+        });
+      });
+      
+      it.skip('options');
+    }); // end addEdge
   }); // end Subgraph
 
   describe('matcher', function() {
     it('id', function() {
-      var idea = { id: '_test' };
+      const idea = { id: '_test' };
 
       expect(subgraph.matcher.id(idea, idea.id)).to.equal(true);
       expect(subgraph.matcher.id(idea, '')).to.equal(false);
@@ -146,7 +214,7 @@ describe('subgraph', function() {
     });
 
     it('exact', function() {
-      var data = { 'thing': 3.14 };
+      const data = { 'thing': 3.14 };
 
       expect(subgraph.matcher.exact(data, {'thing': 3.14})).to.equal(true);
       expect(subgraph.matcher.exact(data, {'thing': 6.28})).to.equal(false);
@@ -154,8 +222,8 @@ describe('subgraph', function() {
     });
 
     it('similar', function() {
-      var data = { 'thing1': 3.14, 'thing2': 2.71 };
-      var before = { 'thing1': 3.14, 'thing2': 2.71 };
+      const data = { 'thing1': 3.14, 'thing2': 2.71 };
+      const before = { 'thing1': 3.14, 'thing2': 2.71 };
 
       expect(subgraph.matcher.similar(data, {'thing1': 3.14})).to.equal(true);
       expect(subgraph.matcher.similar(data, {'thing2': 2.71})).to.equal(true);
@@ -169,7 +237,7 @@ describe('subgraph', function() {
     });
 
     it('substring', function() {
-      var data;
+      let data;
       expect(subgraph.matcher.substring(data, { value: 'some' })).to.equal(false);
 
       data = 'some STRING';

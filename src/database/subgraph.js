@@ -1,6 +1,7 @@
 'use strict';
 const _ = require('lodash');
 const ideas = require('./ideas');
+const links = require('./links');
 const utils = require('../utils');
 
 // this is an overlay on the idea database
@@ -81,7 +82,7 @@ class Subgraph {
   // @param matcher: exports.matcher or equivalent
   // @param data: passed to the matcher
   // @param options: {
-  //   transitionable: boolean, // if true, this part of a transition (subgraph.rewrite, blueprints, etc; subgraph.rewrite(transitions);)
+  //   transitionable: boolean, // if true, this is part of a transition (subgraph.rewrite, blueprints, etc; subgraph.rewrite(transitions);)
   //                            // it means that we are intending to change the value
   //   variable: boolean, // if true, this should use a different object for the match data
   //                      // specifically, use vertex[data].data instead of match data
@@ -103,7 +104,7 @@ class Subgraph {
     if(matcher === exports.matcher.substring)
       data.value = data.value.toLowerCase();
 
-    var id = this._vertexCount + '';
+    const id = this._vertexCount;
     this._vertexCount++;
 
     this._match[id] = {
@@ -117,6 +118,54 @@ class Subgraph {
       this._idea[id] = ideas.proxy(data);
     } else {
       this.concrete = false;
+    }
+
+    return id;
+  }
+
+  // @param src: a vertex ID
+  // @param link: the link from src to dst
+  // @param dst: a vertex ID
+  // @param options.pref: higher prefs will be considered first (default: 0)
+  // @param options.transitive: the same as link.transitive; will search in a transitive manner
+  // @param options.transitionable: can the edge be changed by actions (subgraph.rewrite)
+  //
+  // - rejected options
+  // @param options.byIdeaLink: during subgraph.match, instead of matching subgraph edges uses the existing idea link
+  // - we can't do this because the subgraph represents our imagination, we can't plan ahead if we don't let the subgraph contain ALL the information
+  addEdge(src, link, dst, options) {
+    // TODO do these NEED to be specified? can we leave them undefined?
+    options = _.merge({
+      pref: 0,
+      transitive: false,
+      transitionable: false
+    }, options);
+
+    if(+src >= this._vertexCount)
+      throw new RangeError('src not a vertex');
+    if(+dst >= this._vertexCount)
+      throw new RangeError('dst not a vertex');
+    if(!link || !link.name || !links.get(link.name))
+      throw new RangeError('invalid link');
+
+    const id = this._edgeCount;
+    this._edgeCount++;
+
+    // store the edges in a normalized form so we don't need to account for it while searching/matching
+    if(link.isOpp) {
+      this._edges[id] = {
+        src: dst,
+        link: link.opposite,
+        dst: src,
+        options: options
+      };
+    } else {
+      this._edges[id] = {
+        src: src,
+        link: link,
+        dst: dst,
+        options: options
+      };
     }
 
     return id;
