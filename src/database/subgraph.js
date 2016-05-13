@@ -73,8 +73,6 @@ class Subgraph {
     return copy;
   }
 
-  // TODO flatten - flatten the LazyCopyObjects - call once we are satisfied with a Subgraph
-
   // add a vertex to the graph
   // this only specifies match data
   // the other parts (ideas / data) need to be found later
@@ -95,13 +93,13 @@ class Subgraph {
       variable: false
     }, options);
 
-    if(!matcher || matcher !== exports.matcher[matcher.name])
+    if (!matcher || matcher !== exports.matcher[matcher.name])
       throw new RangeError('invalid matcher');
-    if(options.variable && this.getMatch(data) === undefined)
+    if (options.variable && this.getMatch(data) === undefined)
       throw new RangeError('variable target (match.data) must already be a vertex');
-    if(matcher !== exports.matcher.filler && data === undefined)
+    if (matcher !== exports.matcher.filler && data === undefined)
       throw new Error('match data must be defined');
-    if(matcher === exports.matcher.substring)
+    if (matcher === exports.matcher.substring)
       data.value = data.value.toLowerCase();
 
     const id = this._vertexCount;
@@ -113,7 +111,7 @@ class Subgraph {
       options: options
     };
 
-    if(matcher === exports.matcher.id) {
+    if (matcher === exports.matcher.id) {
       this._match[id].data = (data.id || data); // unwrap the id
       this._idea[id] = ideas.proxy(data);
     } else {
@@ -141,29 +139,29 @@ class Subgraph {
       transitionable: false
     }, options);
 
-    if(!_.isNumber(src))
+    if (!_.isNumber(src))
       throw new TypeError('src not a vertex');
-    if(src >= this._vertexCount || src < 0)
+    if (src >= this._vertexCount || src < 0)
       throw new RangeError('src not a vertex');
-    if(!_.isNumber(dst))
+    if (!_.isNumber(dst))
       throw new TypeError('src not a vertex');
-    if(dst >= this._vertexCount || dst < 0)
+    if (dst >= this._vertexCount || dst < 0)
       throw new RangeError('dst not a vertex');
-    if(!link || !link.name || !links.get(link.name))
+    if (!link || !link.name || !links.get(link.name))
       throw new TypeError('invalid link');
 
-    if(!_.isNumber(options.pref))
+    if (!_.isNumber(options.pref))
       throw new TypeError('invalid options.pref');
-    if(!_.isBoolean(options.transitive))
+    if (!_.isBoolean(options.transitive))
       throw new TypeError('invalid options.transitive');
-    if(!_.isBoolean(options.transitionable))
+    if (!_.isBoolean(options.transitionable))
       throw new TypeError('invalid options.transitionable');
 
     const id = this._edgeCount;
     this._edgeCount++;
 
     // store the edges in a normalized form so we don't need to account for it while searching/matching
-    if(link.isOpp) {
+    if (link.isOpp) {
       this._edges[id] = {
         src: dst,
         link: link.opposite,
@@ -181,6 +179,46 @@ class Subgraph {
 
     return id;
   }
+
+  // independent functions
+
+  getMatch(id) {
+    return this._match.get(id);
+  }
+
+  getIdea(id) {
+    return this._idea[id];
+  }
+  allIdeas() {
+    return _.assign({}, this._idea);
+  }
+  deleteIdea(id) {
+    if(id in this._idea) {
+      // if the id is present, then this is no longer concrete
+      // if the id is NOT present, then it doesn't change anything
+      this.concrete = false;
+      delete this._idea[id];
+    }
+  }
+
+  // TODO getData
+  setData(id, value) {
+    return this._data.set(id, value);
+  }
+  deleteData() {
+    if(arguments.length) {
+      // only reset the ones in the arguments
+      var sg = this;
+      _.forEach(arguments, function(id) {
+        sg._data.set(id, undefined);
+      });
+    } else {
+      // reset all vertices
+      // FIXME this should be internal to the object, or create a new one
+      this._data.data = {};
+      this._data.parent = undefined;
+    }
+  }
 }
 
 class LazyCopyObject {
@@ -192,8 +230,8 @@ class LazyCopyObject {
     this.parent = p;
   }
 
-  set(id, data) {
-    this.data[id] = data;
+  set(id, value) {
+    this.data[id] = value;
   }
 
   get(id) {
@@ -205,6 +243,7 @@ class LazyCopyObject {
 
     return undefined;
   }
+// TODO flatten - to be called once we are satisfied with a Subgraph
 }
 
 // matchers
