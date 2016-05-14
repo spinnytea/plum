@@ -85,6 +85,7 @@ describe('subgraph', function() {
       it('invalid matcher', function() {
         expect(function() { sg.addVertex(null); }).to.throw('invalid matcher');
         expect(function() { sg.addVertex(function() {}); }).to.throw('invalid matcher');
+        expect(function() { sg.addVertex(subgraph.matcher.filler, undefined, { pointer: true }); }).to.throw(RangeError);
       });
 
       it('no data in non-filler', function() {
@@ -102,7 +103,7 @@ describe('subgraph', function() {
           data: undefined,
           options: {
             transitionable: false,
-            variable: false
+            pointer: false
           }
         });
       });
@@ -120,7 +121,7 @@ describe('subgraph', function() {
           data: '_test',
           options: {
             transitionable: false,
-            variable: false
+            pointer: false
           }
         });
         expect(sg._match[1]).to.deep.equal({
@@ -128,14 +129,34 @@ describe('subgraph', function() {
           data: '_test2',
           options: {
             transitionable: false,
-            variable: false
+            pointer: false
+          }
+        });
+      });
+
+      it('substring', function() {
+        const v = sg.addVertex(subgraph.matcher.substring, { value: 'SoMe StRiNg', path: undefined });
+        expect(v).to.equal(0);
+        expect(sg._vertexCount).to.equal(1);
+        expect(sg.concrete).to.equal(false);
+        expect(sg._match[0]).to.deep.equal({
+          matcher: subgraph.matcher.substring,
+          data: { value: 'some string', path: undefined },
+          options: {
+            transitionable: false,
+            pointer: false
           }
         });
       });
       
-      it.skip('options');
-
-      it.skip('invalid options');
+      it('options', function() {
+        const o = {
+          transitionable: true,
+          pointer: false
+        };
+        const v = sg.addVertex(subgraph.matcher.filler, undefined, o);
+        expect(sg._match[v].options).to.deep.equal(o);
+      });
     }); // end addVertex
 
     describe('addEdge', function() {

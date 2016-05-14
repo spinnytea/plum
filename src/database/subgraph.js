@@ -82,7 +82,7 @@ class Subgraph {
   // @param options: {
   //   transitionable: boolean, // if true, this is part of a transition (subgraph.rewrite, blueprints, etc; subgraph.rewrite(transitions);)
   //                            // it means that we are intending to change the value
-  //   variable: boolean, // if true, this should use a different object for the match data
+  //   pointer: boolean, // if true, this should use a different object for the match data
   //                      // specifically, use vertex[data].data instead of match data
   //                      // (it doesn't make sense to use this with matcher.filler)
   // }
@@ -90,15 +90,15 @@ class Subgraph {
     // TODO do these NEED to be specified? can we leave them undefined?
     options = _.merge({
       transitionable: false,
-      variable: false
+      pointer: false
     }, options);
 
     if (!matcher || matcher !== exports.matcher[matcher.name])
       throw new RangeError('invalid matcher');
-    if (options.variable && this.getMatch(data) === undefined)
-      throw new RangeError('variable target (match.data) must already be a vertex');
+    if (options.pointer && this.getMatch(data) === undefined)
+      throw new RangeError('pointer target (match.data) must already be a vertex');
     if (matcher !== exports.matcher.filler && data === undefined)
-      throw new Error('match data must be defined');
+      throw new RangeError('match data must be defined');
     if (matcher === exports.matcher.substring)
       data.value = data.value.toLowerCase();
 
@@ -180,7 +180,7 @@ class Subgraph {
     return id;
   }
 
-  // independent functions
+  //
 
   getMatch(id) {
     return this._match.get(id);
