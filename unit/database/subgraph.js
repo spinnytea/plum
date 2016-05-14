@@ -1,5 +1,5 @@
 'use strict';
-const expect = require('chai').expect;
+const expect = require('chai').use(require('chai-as-promised')).expect;
 const links = require('../../src/database/links');
 const subgraph = require('../../src/database/subgraph');
 
@@ -250,11 +250,27 @@ describe('subgraph', function() {
       expect(sg.getMatch(v)).to.equal(sg._match.data[v]);
     });
 
-    it.skip('getIdea');
+    it('getIdea', function() {
+      const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      expect(sg.getIdea(v)).to.eventually.deep.equal({ id: '_test' });
+    });
 
-    it.skip('allIdeas');
+    it('allIdeas', function() {
+      sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      const all = sg.allIdeas();
+      expect(all).to.not.equal(sg._idea);
+      expect(all).to.deep.equal(sg._idea);
+    });
 
-    it.skip('deleteIdea');
+    it('deleteIdea', function() {
+      const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      sg.deleteIdea(-1);
+      expect(sg.getIdea(v)).to.not.equal(undefined);
+      expect(sg.concrete).to.equal(true);
+      sg.deleteIdea(v);
+      expect(sg.getIdea(v)).to.equal(undefined);
+      expect(sg.concrete).to.equal(false);
+    });
 
     it.skip('setData');
 

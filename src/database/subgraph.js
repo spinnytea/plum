@@ -183,6 +183,7 @@ class Subgraph {
   //
 
   getMatch(id) {
+    // XXX should this return a promise?
     return this._match.get(id);
   }
 
