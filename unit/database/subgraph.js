@@ -67,8 +67,10 @@ describe('subgraph', function() {
   }); // end LazyCopyObject
 
   describe('Subgraph', function() {
+    let sg;
+    beforeEach(function() { sg = new subgraph.units.Subgraph(); });
+
     it('construct', function() {
-      const sg = new subgraph.units.Subgraph();
       expect(sg).to.have.property('_match');
     });
 
@@ -79,9 +81,6 @@ describe('subgraph', function() {
     });
     
     describe('addVertex', function() {
-      let sg;
-      beforeEach(function() { sg = new subgraph.units.Subgraph(); });
-
       it('invalid matcher', function() {
         expect(function() { sg.addVertex(null); }).to.throw('invalid matcher');
         expect(function() { sg.addVertex(function() {}); }).to.throw('invalid matcher');
@@ -98,7 +97,7 @@ describe('subgraph', function() {
         expect(v).to.equal(0);
         expect(sg._vertexCount).to.equal(1);
         expect(sg.concrete).to.equal(false);
-        expect(sg._match[0]).to.deep.equal({
+        expect(sg._match.data[0]).to.deep.equal({
           matcher: subgraph.matcher.filler,
           data: undefined,
           options: {
@@ -116,7 +115,7 @@ describe('subgraph', function() {
         expect(v2).to.equal(1);
         expect(sg._vertexCount).to.equal(2);
         expect(sg.concrete).to.equal(true);
-        expect(sg._match[0]).to.deep.equal({
+        expect(sg._match.data[0]).to.deep.equal({
           matcher: subgraph.matcher.id,
           data: '_test',
           options: {
@@ -124,7 +123,7 @@ describe('subgraph', function() {
             pointer: false
           }
         });
-        expect(sg._match[1]).to.deep.equal({
+        expect(sg._match.data[1]).to.deep.equal({
           matcher: subgraph.matcher.id,
           data: '_test2',
           options: {
@@ -139,7 +138,7 @@ describe('subgraph', function() {
         expect(v).to.equal(0);
         expect(sg._vertexCount).to.equal(1);
         expect(sg.concrete).to.equal(false);
-        expect(sg._match[0]).to.deep.equal({
+        expect(sg._match.data[0]).to.deep.equal({
           matcher: subgraph.matcher.substring,
           data: { value: 'some string', path: undefined },
           options: {
@@ -155,15 +154,14 @@ describe('subgraph', function() {
           pointer: false
         };
         const v = sg.addVertex(subgraph.matcher.filler, undefined, o);
-        expect(sg._match[v].options).to.deep.equal(o);
+        expect(sg._match.data[v].options).to.deep.equal(o);
       });
     }); // end addVertex
 
     describe('addEdge', function() {
-      let sg, v1, v2;
+      let v1, v2;
       const link = links.get('thought_description');
       beforeEach(function() {
-        sg = new subgraph.units.Subgraph();
         v1 = sg.addVertex(subgraph.matcher.filler);
         v2 = sg.addVertex(subgraph.matcher.filler);
       });
@@ -191,7 +189,7 @@ describe('subgraph', function() {
 
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
-        expect(sg._edges[0]).to.deep.equal({
+        expect(sg._edges.data[0]).to.deep.equal({
           src: v1,
           link: link,
           dst: v2,
@@ -208,7 +206,7 @@ describe('subgraph', function() {
 
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
-        expect(sg._edges[0]).to.deep.equal({
+        expect(sg._edges.data[0]).to.deep.equal({
           src: v2,
           link: link,
           dst: v1,
@@ -227,7 +225,7 @@ describe('subgraph', function() {
           transitionable: true
         };
         const e = sg.addEdge(v1, link, v2, o);
-        expect(sg._edges[e].options).to.deep.equal(o);
+        expect(sg._edges.data[e].options).to.deep.equal(o);
       });
 
       it('invalid options', function() {
@@ -236,6 +234,31 @@ describe('subgraph', function() {
         expect(function() { sg.addEdge(v1, link, v2, { transitionable: 'banana' }); }).to.throw(TypeError);
       });
     }); // end addEdge
+
+    //
+
+    it('getMatch', function() {
+      const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      expect(sg.getMatch(v)).to.deep.equal({
+        matcher: subgraph.matcher.id,
+        data: '_test',
+        options: {
+          transitionable: false,
+          pointer: false
+        }
+      });
+      expect(sg.getMatch(v)).to.equal(sg._match.data[v]);
+    });
+
+    it.skip('getIdea');
+
+    it.skip('allIdeas');
+
+    it.skip('deleteIdea');
+
+    it.skip('setData');
+
+    it.skip('deleteData');
   }); // end Subgraph
 
   describe('matcher', function() {

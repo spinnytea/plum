@@ -105,14 +105,14 @@ class Subgraph {
     const id = this._vertexCount;
     this._vertexCount++;
 
-    this._match[id] = {
+    this._match.set(id, {
       matcher: matcher,
       data: data,
       options: options
-    };
+    });
 
     if (matcher === exports.matcher.id) {
-      this._match[id].data = (data.id || data); // unwrap the id
+      this._match.get(id).data = (data.id || data); // unwrap the id
       this._idea[id] = ideas.proxy(data);
     } else {
       this.concrete = false;
@@ -162,19 +162,19 @@ class Subgraph {
 
     // store the edges in a normalized form so we don't need to account for it while searching/matching
     if (link.isOpp) {
-      this._edges[id] = {
+      this._edges.set(id, {
         src: dst,
         link: link.opposite,
         dst: src,
         options: options
-      };
+      });
     } else {
-      this._edges[id] = {
+      this._edges.set(id, {
         src: src,
         link: link,
         dst: dst,
         options: options
-      };
+      });
     }
 
     return id;
