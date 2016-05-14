@@ -272,9 +272,23 @@ describe('subgraph', function() {
       expect(sg.concrete).to.equal(false);
     });
 
-    it.skip('setData');
+    it('setData', function() {
+      const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      sg.setData(v, 'taters');
+      expect(sg._data.data[v]).to.equal('taters');
+    });
 
-    it.skip('deleteData');
+    it('deleteData', function() {
+      const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+      sg.setData(v, 'taters');
+      sg.deleteData(v);
+      expect(sg._data.data[v]).to.equal(undefined);
+      expect(sg._data.data).to.have.property(v);
+
+      sg.deleteData();
+      expect(sg._data.data).to.deep.equal({});
+      expect(sg._data.parent).to.equal(undefined);
+    });
   }); // end Subgraph
 
   describe('matcher', function() {
