@@ -1,5 +1,6 @@
 'use strict';
 const expect = require('chai').use(require('chai-as-promised')).expect;
+const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
 const subgraph = require('../../src/database/subgraph');
 
@@ -131,6 +132,8 @@ describe('subgraph', function() {
             pointer: false
           }
         });
+        expect(sg._idea).to.have.property(v1);
+        expect(sg._idea).to.have.property(v2);
       });
 
       it('substring', function() {
@@ -252,7 +255,9 @@ describe('subgraph', function() {
 
     it('getIdea', function() {
       const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
-      expect(sg.getIdea(v)).to.eventually.deep.equal({ id: '_test' });
+      return sg.getIdea(v).then(function(proxy) {
+        expect(proxy.id).to.equal('_test');
+      });
     });
 
     it('allIdeas', function() {
@@ -271,6 +276,46 @@ describe('subgraph', function() {
       expect(sg.getIdea(v)).to.equal(undefined);
       expect(sg.concrete).to.equal(false);
     });
+
+    describe('getData', function() {
+      it('no idea', function() {
+        const v = sg.addVertex(subgraph.matcher.filler);
+        return expect(sg.getData(v)).to.eventually.equal(undefined);
+      });
+
+      it('has data', function() {
+        const v = sg.addVertex(subgraph.matcher.filler);
+        sg.setData(v, 'taters');
+        return expect(sg.getData(v)).to.eventually.equal('taters');
+      });
+
+      it('idea without data', function() {
+        const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+        return sg.getData(v).then(function(data) {
+          expect(data).to.equal(undefined);
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal(undefined);
+        });
+      });
+
+      // XXX I don't know how to NOT make this an integration test; I mean, it is, isn't it?
+      it('idea with data', function() {
+        const id = '_test';
+        const v = sg.addVertex(subgraph.matcher.id, { id: id });
+        return ideas.proxy(id).then(function(proxy) {
+          return proxy.setData('banana');
+        }).then(function() {
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal('banana');
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal('banana');
+          return ideas.delete(id);
+        });
+      });
+    }); // end getData
 
     it('setData', function() {
       const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });

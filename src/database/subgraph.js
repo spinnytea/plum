@@ -1,5 +1,6 @@
 'use strict';
 const _ = require('lodash');
+const bluebird = require('bluebird');
 const ideas = require('./ideas');
 const links = require('./links');
 const utils = require('../utils');
@@ -202,14 +203,37 @@ class Subgraph {
     }
   }
 
-  // TODO getData
+  getData(id) {
+    var that = this;
+    return bluebird.coroutine(function*() {
+      let data = that._data.get(id);
+
+      if(data === null) {
+        return undefined;
+      } else if(data !== undefined) {
+        return data;
+      } else if(that.getIdea(id) === undefined) {
+        return undefined;
+      } else {
+        // try to load the data
+        let proxy = yield that.getIdea(id);
+        data = yield proxy.data();
+        if(data === undefined) {
+          that._data.set(id, null);
+        } else {
+          that._data.set(id, data);
+        }
+        return data;
+      }
+    })();
+  }
   setData(id, value) {
     return this._data.set(id, value);
   }
   deleteData() {
     if(arguments.length) {
       // only reset the ones in the arguments
-      var sg = this;
+      const sg = this;
       _.forEach(arguments, function(id) {
         sg._data.set(id, undefined);
       });
