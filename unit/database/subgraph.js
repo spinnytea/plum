@@ -202,6 +202,7 @@ describe('subgraph', function() {
             transitionable: false
           }
         });
+        expect(sg.getEdge(e)).to.equal(sg._edges.data[0]);
       });
       
       it('opposite', function() {
@@ -219,6 +220,7 @@ describe('subgraph', function() {
             transitionable: false
           }
         });
+        expect(sg.getEdge(e)).to.equal(sg._edges.data[0]);
       });
       
       it('options', function() {

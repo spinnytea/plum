@@ -244,6 +244,13 @@ class Subgraph {
       this._data.parent = undefined;
     }
   }
+  
+  //
+  
+  getEdge(id) {
+    // XXX should this return a promise?
+    return this._edges.get(id);
+  }
 }
 
 class LazyCopyObject {
