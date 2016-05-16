@@ -66,6 +66,9 @@ class Subgraph {
     copyParentyThing(this, copy, '_data');
     copyParentyThing(this, copy, '_edges');
 
+    if(this.__all_edges__)
+      copy.__all_edges__ = this.__all_edges__;
+
     // straight copy the primitives
     copy._vertexCount = this._vertexCount;
     copy._edgeCount = this._edgeCount;
@@ -160,6 +163,7 @@ class Subgraph {
 
     const id = this._edgeCount;
     this._edgeCount++;
+    delete this.__all_edges__;
 
     // store the edges in a normalized form so we don't need to account for it while searching/matching
     if (link.isOpp) {
@@ -250,6 +254,17 @@ class Subgraph {
   getEdge(id) {
     // XXX should this return a promise?
     return this._edges.get(id);
+  }
+  allEdges() {
+    // TODO this could be made faster
+    // TODO move into LazyCopyObject; but it makes some assumptions about i/_edgeCount so I don't want to
+    if(!this.__all_edges__) {
+      var array = new Array(this._edgeCount);
+      for(let i=0; i<this._edgeCount; i++)
+        array[i] = this._edges.get(i);
+      this.__all_edges__ = Object.freeze(array);
+    }
+    return this.__all_edges__;
   }
 }
 

@@ -336,6 +336,32 @@ describe('subgraph', function() {
       expect(sg._data.data).to.deep.equal({});
       expect(sg._data.parent).to.equal(undefined);
     });
+
+    //
+
+    it('getEdge', function() {
+      let v1 = sg.addVertex(subgraph.matcher.filler);
+      let v2 = sg.addVertex(subgraph.matcher.filler);
+      const link = links.get('thought_description');
+      const e = sg.addEdge(v1, link, v2);
+      expect(sg.getEdge(e)).to.deep.equal(sg._edges.data[e]);
+    });
+
+    it('allEdges', function() {
+      let v1 = sg.addVertex(subgraph.matcher.filler);
+      let v2 = sg.addVertex(subgraph.matcher.filler);
+      const link = links.get('thought_description');
+      sg.addEdge(v1, link, v2);
+      expect(sg).to.not.have.property('__all_edges__');
+      expect(sg.allEdges()).to.deep.equal([sg._edges.data[0]]);
+      expect(sg).to.have.property('__all_edges__');
+      expect(sg.allEdges()).to.equal(sg.__all_edges__);
+      const copy = sg.copy();
+      expect(copy.__all_edges__).to.equal(sg.__all_edges__);
+      sg.addEdge(v1, link, v2);
+      expect(sg).to.not.have.property('__all_edges__');
+      expect(sg.allEdges().length).to.equal(sg._edgeCount);
+    });
   }); // end Subgraph
 
   describe('matcher', function() {
