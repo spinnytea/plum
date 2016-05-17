@@ -155,8 +155,8 @@ describe('subgraph', function() {
             pointer: false
           }
         });
-        expect(sg._idea).to.have.property(v1);
-        expect(sg._idea).to.have.property(v2);
+        expect(sg._idea.has(v1)).to.equal(true);
+        expect(sg._idea.has(v2)).to.equal(true);
       });
 
       it('substring', function() {
@@ -287,7 +287,7 @@ describe('subgraph', function() {
       sg.addVertex(subgraph.matcher.id, { id: '_test' });
       const all = sg.allIdeas();
       expect(all).to.not.equal(sg._idea);
-      expect(all).to.deep.equal(sg._idea);
+      expect(Array.from(all.entries())).to.deep.equal(Array.from(sg._idea.entries()));
     });
 
     it('deleteIdea', function() {
@@ -493,7 +493,7 @@ describe('subgraph', function() {
       '"0":{"matcher":"id","data":"_test","options":{"transitionable":false,"pointer":false}},' +
       '"1":{"matcher":"filler","options":{"transitionable":false,"pointer":false}},' +
       '"2":{"matcher":"filler","options":{"transitionable":false,"pointer":false}}' +
-      '},"i":{"0":"_test"},"d":[[0,"some value"]],"e":{' +
+      '},"i":[[0,"_test"]],"d":[[0,"some value"]],"e":{' +
       '"0":{"src":0,"link":"thought_description","dst":1,"options":{"pref":0,"transitive":false,"transitionable":false}},' +
       '"1":{"src":1,"link":"thought_description","dst":2,"options":{"pref":0,"transitive":false,"transitionable":false}}' +
       '},"vc":3,"ec":2,"c":false}';

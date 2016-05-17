@@ -20,7 +20,7 @@ class Subgraph {
 
     // this is what we are ultimately trying to find with a subgraph search
     // pinned context
-    this._idea = {}; // TODO convert to a map
+    this._idea = new Map();
 
     // theoretical state
     // this is for the rewrite, planning in general
@@ -57,7 +57,7 @@ class Subgraph {
     // the ideas should/will never change
     // so we can reference the original
     // this is what we are trying to pin down, so as we do so we can copy them directly
-    _.assign(copy._idea, this._idea);
+    copy._idea = new Map(this._idea);
 
     // do the parent copy for the applicable values
     copyParentyThing(this, copy, '_match');
@@ -86,11 +86,6 @@ class Subgraph {
         matcher: value.matcher.name
       });
 
-    var idea = {};
-    _.forEach(this._idea, function(proxy, id) {
-      idea[id] = proxy.id;
-    });
-
     var edges = {};
     for(let [id, value] of this._edges.data.entries())
       edges[id] = _.assign({}, value, {
@@ -99,7 +94,7 @@ class Subgraph {
 
     return JSON.stringify({
       m: match,
-      i: idea,
+      i: Array.from(this._idea.entries()).map(function([id, proxy]) { return [id, proxy.id]; }),
       d: Array.from(this._data.data.entries()),
       e: edges,
       vc: this._vertexCount,
@@ -148,7 +143,7 @@ class Subgraph {
 
     if (matcher === exports.matcher.id) {
       this._match.get(id).data = (data.id || data); // unwrap the id
-      this._idea[id] = ideas.proxy(data);
+      this._idea.set(id, ideas.proxy(data));
     } else {
       this.concrete = false;
     }
@@ -223,17 +218,16 @@ class Subgraph {
   }
 
   getIdea(id) {
-    return this._idea[id];
+    return this._idea.get(id);
   }
   allIdeas() {
-    return _.assign({}, this._idea);
+    return new Map(this._idea);
   }
   deleteIdea(id) {
-    if(id in this._idea) {
+    if(this._idea.delete(id)) {
       // if the id is present, then this is no longer concrete
       // if the id is NOT present, then it doesn't change anything
       this.concrete = false;
-      delete this._idea[id];
     }
   }
 
