@@ -65,6 +65,29 @@ describe('subgraph', function() {
         });
       }); // end has parent
     }); // end get
+
+    it('flatten', function() {
+      const lco = new subgraph.units.LazyCopyObject();
+
+      lco.flatten();
+      expect(lco.data.size).to.equal(0);
+      expect(Array.from(lco.data.entries())).to.deep.equal([]);
+      expect(lco.parent).to.equal(undefined);
+
+      lco.parent = new subgraph.units.LazyCopyObject(new subgraph.units.LazyCopyObject());
+      lco.flatten();
+      expect(Array.from(lco.data.entries())).to.deep.equal([]);
+      expect(lco.parent).to.equal(undefined);
+
+      lco.parent = new subgraph.units.LazyCopyObject(new subgraph.units.LazyCopyObject());
+      lco.set('a', 1);
+      lco.parent.set('b', 2);
+      lco.parent.parent.set('c', 3);
+      lco.parent.parent.set('a', 4);
+      lco.flatten();
+      expect(Array.from(lco.data.entries())).to.deep.equal([['a', 1], ['b', 2], ['c', 3]]);
+      expect(lco.parent).to.equal(undefined);
+    });
   }); // end LazyCopyObject
 
   describe('Subgraph', function() {

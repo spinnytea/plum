@@ -289,7 +289,18 @@ class LazyCopyObject {
 
     return undefined;
   }
-// TODO flatten - to be called once we are satisfied with a Subgraph
+
+  flatten() {
+    let p = this.parent;
+    while(p) {
+      for(let [key, value] of p.data) {
+        if(!this.data.has(key))
+          this.data.set(key, value);
+      }
+      p = p.parent;
+    }
+    this.parent = undefined;
+  }
 }
 
 // matchers
