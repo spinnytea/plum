@@ -257,9 +257,7 @@ describe('subgraph', function() {
 
     it('getIdea', function() {
       const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
-      return sg.getIdea(v).then(function(proxy) {
-        expect(proxy.id).to.equal('_test');
-      });
+      expect(sg.getIdea(v).id).to.equal('_test');
     });
 
     it('allIdeas', function() {
@@ -305,9 +303,7 @@ describe('subgraph', function() {
       it('idea with data', function() {
         const id = '_test';
         const v = sg.addVertex(subgraph.matcher.id, { id: id });
-        return ideas.proxy(id).then(function(proxy) {
-          return proxy.setData('banana');
-        }).then(function() {
+        return ideas.proxy(id).setData('banana').then(function() {
           return sg.getData(v);
         }).then(function(data) {
           expect(data).to.equal('banana');

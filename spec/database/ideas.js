@@ -31,10 +31,9 @@ describe('ideas', function() {
   });
 
   it('proxy', function() {
-    return ideas.proxy('_test').then(function(proxy) {
-      expect(proxy.id).to.equal('_test');
-      expect(proxy.constructor.name).to.equal('ProxyIdea');
-    });
+    const proxy = ideas.proxy('_test');
+    expect(proxy.id).to.equal('_test');
+    expect(proxy.constructor.name).to.equal('ProxyIdea');
   });
 
   it('save (not loaded)', function() {

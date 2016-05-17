@@ -90,7 +90,7 @@ exports.load = bluebird.coroutine(function*(idea) {
   return Promise.resolve(proxy);
 });
 exports.proxy = function(idea) {
-  return Promise.resolve(new ProxyIdea(getID(idea)));
+  return new ProxyIdea(getID(idea));
 };
 
 exports.save = bluebird.coroutine(function*(idea) {

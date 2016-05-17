@@ -1,6 +1,5 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
 const ideas = require('./ideas');
 const links = require('./links');
 
@@ -206,29 +205,30 @@ class Subgraph {
     }
   }
 
+  // XXX this disallows null from being a value; can we do better?
+  // - we could do a that._data.wasDeleted where LCO stores deleted keys in a set, but that requires another traversal on misses
   getData(id) {
-    var that = this;
-    return bluebird.coroutine(function*() {
-      let data = that._data.get(id);
+    let data = this._data.get(id);
 
-      if(data === null) {
-        return undefined;
-      } else if(data !== undefined) {
-        return data;
-      } else if(that.getIdea(id) === undefined) {
-        return undefined;
-      } else {
-        // try to load the data
-        let proxy = yield that.getIdea(id);
-        data = yield proxy.data();
+    if(data === null) {
+      return Promise.resolve(undefined);
+    } else if(data !== undefined) {
+      return Promise.resolve(data);
+    } else if(this.getIdea(id) === undefined) {
+      return Promise.resolve(undefined);
+    } else {
+      // try to load the data
+      let proxy = this.getIdea(id);
+      let self = this;
+      return proxy.data().then(function(data) {
         if(data === undefined) {
-          that._data.set(id, null);
+          self._data.set(id, null);
         } else {
-          that._data.set(id, data);
+          self._data.set(id, data);
         }
         return data;
-      }
-    })();
+      });
+    }
   }
   setData(id, value) {
     return this._data.set(id, value);
