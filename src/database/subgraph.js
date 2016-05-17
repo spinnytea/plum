@@ -3,7 +3,6 @@ const _ = require('lodash');
 const bluebird = require('bluebird');
 const ideas = require('./ideas');
 const links = require('./links');
-const utils = require('../utils');
 
 // this is an overlay on the idea database
 // it is a proxy or wrapper around the idea graph
@@ -244,7 +243,7 @@ class Subgraph {
     } else {
       // reset all vertices
       // FIXME this should be internal to the object, or create a new one
-      this._data.data = {};
+      this._data.data = new Map();
       this._data.parent = undefined;
     }
   }
@@ -273,17 +272,17 @@ class LazyCopyObject {
     if(p !== undefined && !(p instanceof LazyCopyObject))
       throw new TypeError('parent must be of type LazyCopyObject');
 
-    this.data = {};
+    this.data = new Map();
     this.parent = p;
   }
 
   set(id, value) {
-    this.data[id] = value;
+    this.data.set(id, value);
   }
 
   get(id) {
-    if(id in this.data)
-      return this.data[id];
+    if(this.data.has(id))
+      return this.data.get(id);
 
     if(this.parent)
       return this.parent.get(id);
@@ -334,7 +333,7 @@ function copyParentyThing(orig, copy, key) {
   // if there are locally defined values
   // then put it in a parent object
   // make that a parent of this
-  if(!utils.isEmpty(orig[key].data)) {
+  if(!!orig[key].data.size) {
     orig[key] = new LazyCopyObject(orig[key]);
   }
   // new or existing, we need to pass the parent to the copy

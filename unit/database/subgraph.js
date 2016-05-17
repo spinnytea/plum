@@ -13,11 +13,11 @@ describe('subgraph', function() {
     it('set', function() {
       const lco = new subgraph.units.LazyCopyObject();
       const key = 0;
-      expect(lco.data[key]).to.equal(undefined);
+      expect(lco.data.get(key)).to.equal(undefined);
 
       lco.set(key, 0);
 
-      expect(lco.data[key]).to.equal(0);
+      expect(lco.data.get(key)).to.equal(0);
       expect(lco.get(key)).to.equal(0);
     });
 
@@ -25,7 +25,7 @@ describe('subgraph', function() {
       describe('no parent', function() {
         const lco = new subgraph.units.LazyCopyObject();
         const key = 0;
-        lco.data[key] = 0;
+        lco.data.set(key, 0);
 
         it('found', function() {
           expect(lco.get(key)).to.equal(0);
@@ -40,8 +40,8 @@ describe('subgraph', function() {
         const lco = new subgraph.units.LazyCopyObject();
         const par = new subgraph.units.LazyCopyObject();
         lco.parent = par;
-        lco.data['c'] = 0;
-        par.data['p'] = 1;
+        lco.data.set('c', 0);
+        par.data.set('p', 1);
 
         it('found local', function() {
           expect(lco.get('c')).to.equal(0);
@@ -58,8 +58,8 @@ describe('subgraph', function() {
         it('overwritten locally', function() {
           const over = new subgraph.units.LazyCopyObject();
           over.parent = lco;
-          over.data['c'] = 2;
-          over.data['p'] = 3;
+          over.data.set('c', 2);
+          over.data.set('p', 3);
           expect(over.get('c')).to.equal(2);
           expect(over.get('p')).to.equal(3);
         });
@@ -98,7 +98,7 @@ describe('subgraph', function() {
         expect(v).to.equal(0);
         expect(sg._vertexCount).to.equal(1);
         expect(sg.concrete).to.equal(false);
-        expect(sg._match.data[0]).to.deep.equal({
+        expect(sg._match.data.get(0)).to.deep.equal({
           matcher: subgraph.matcher.filler,
           data: undefined,
           options: {
@@ -116,7 +116,7 @@ describe('subgraph', function() {
         expect(v2).to.equal(1);
         expect(sg._vertexCount).to.equal(2);
         expect(sg.concrete).to.equal(true);
-        expect(sg._match.data[0]).to.deep.equal({
+        expect(sg._match.data.get(0)).to.deep.equal({
           matcher: subgraph.matcher.id,
           data: '_test',
           options: {
@@ -124,7 +124,7 @@ describe('subgraph', function() {
             pointer: false
           }
         });
-        expect(sg._match.data[1]).to.deep.equal({
+        expect(sg._match.data.get(1)).to.deep.equal({
           matcher: subgraph.matcher.id,
           data: '_test2',
           options: {
@@ -141,7 +141,7 @@ describe('subgraph', function() {
         expect(v).to.equal(0);
         expect(sg._vertexCount).to.equal(1);
         expect(sg.concrete).to.equal(false);
-        expect(sg._match.data[0]).to.deep.equal({
+        expect(sg._match.data.get(0)).to.deep.equal({
           matcher: subgraph.matcher.substring,
           data: { value: 'some string', path: undefined },
           options: {
@@ -157,7 +157,7 @@ describe('subgraph', function() {
           pointer: false
         };
         const v = sg.addVertex(subgraph.matcher.filler, undefined, o);
-        expect(sg._match.data[v].options).to.deep.equal(o);
+        expect(sg._match.data.get(v).options).to.deep.equal(o);
       });
     }); // end addVertex
 
@@ -192,7 +192,7 @@ describe('subgraph', function() {
 
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
-        expect(sg._edges.data[0]).to.deep.equal({
+        expect(sg._edges.data.get(0)).to.deep.equal({
           src: v1,
           link: link,
           dst: v2,
@@ -202,7 +202,7 @@ describe('subgraph', function() {
             transitionable: false
           }
         });
-        expect(sg.getEdge(e)).to.equal(sg._edges.data[0]);
+        expect(sg.getEdge(e)).to.equal(sg._edges.data.get(0));
       });
       
       it('opposite', function() {
@@ -210,7 +210,7 @@ describe('subgraph', function() {
 
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
-        expect(sg._edges.data[0]).to.deep.equal({
+        expect(sg._edges.data.get(0)).to.deep.equal({
           src: v2,
           link: link,
           dst: v1,
@@ -220,7 +220,7 @@ describe('subgraph', function() {
             transitionable: false
           }
         });
-        expect(sg.getEdge(e)).to.equal(sg._edges.data[0]);
+        expect(sg.getEdge(e)).to.equal(sg._edges.data.get(0));
       });
       
       it('options', function() {
@@ -230,7 +230,7 @@ describe('subgraph', function() {
           transitionable: true
         };
         const e = sg.addEdge(v1, link, v2, o);
-        expect(sg._edges.data[e].options).to.deep.equal(o);
+        expect(sg._edges.data.get(e).options).to.deep.equal(o);
       });
 
       it('invalid options', function() {
@@ -252,7 +252,7 @@ describe('subgraph', function() {
           pointer: false
         }
       });
-      expect(sg.getMatch(v)).to.equal(sg._match.data[v]);
+      expect(sg.getMatch(v)).to.equal(sg._match.data.get(v));
     });
 
     it('getIdea', function() {
@@ -322,15 +322,15 @@ describe('subgraph', function() {
     it('setData', function() {
       const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
       sg.setData(v, 'taters');
-      expect(sg._data.data[v]).to.equal('taters');
+      expect(sg._data.data.get(v)).to.equal('taters');
     });
 
     it('deleteData', function() {
       const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
       sg.setData(v, 'taters');
       sg.deleteData(v);
-      expect(sg._data.data[v]).to.equal(undefined);
-      expect(sg._data.data).to.have.property(v);
+      expect(sg._data.data.get(v)).to.equal(undefined);
+      expect(sg._data.data.has(v)).to.equal(true);
 
       sg.deleteData();
       expect(sg._data.data).to.deep.equal({});
@@ -344,7 +344,7 @@ describe('subgraph', function() {
       let v2 = sg.addVertex(subgraph.matcher.filler);
       const link = links.get('thought_description');
       const e = sg.addEdge(v1, link, v2);
-      expect(sg.getEdge(e)).to.deep.equal(sg._edges.data[e]);
+      expect(sg.getEdge(e)).to.deep.equal(sg._edges.data.get(e));
     });
 
     it('allEdges', function() {
@@ -353,7 +353,7 @@ describe('subgraph', function() {
       const link = links.get('thought_description');
       sg.addEdge(v1, link, v2);
       expect(sg).to.not.have.property('__all_edges__');
-      expect(sg.allEdges()).to.deep.equal([sg._edges.data[0]]);
+      expect(sg.allEdges()).to.deep.equal([sg._edges.data.get(0)]);
       expect(sg).to.have.property('__all_edges__');
       expect(sg.allEdges()).to.equal(sg.__all_edges__);
       const copy = sg.copy();
