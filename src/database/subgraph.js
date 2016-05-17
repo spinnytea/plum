@@ -20,7 +20,7 @@ class Subgraph {
 
     // this is what we are ultimately trying to find with a subgraph search
     // pinned context
-    this._idea = {};
+    this._idea = {}; // TODO convert to a map
 
     // theoretical state
     // this is for the rewrite, planning in general
@@ -73,6 +73,39 @@ class Subgraph {
     copy.concrete = this.concrete;
 
     return copy;
+  }
+
+  stringify() {
+    this._match.flatten();
+    this._data.flatten();
+    this._edges.flatten();
+
+    var match = {};
+    for(let [id, value] of this._match.data.entries())
+      match[id] = _.assign({}, value, {
+        matcher: value.matcher.name
+      });
+
+    var idea = {};
+    _.forEach(this._idea, function(proxy, id) {
+      idea[id] = proxy.id;
+    });
+
+    var edges = {};
+    for(let [id, value] of this._edges.data.entries())
+      edges[id] = _.assign({}, value, {
+        link: value.link.name
+      });
+
+    return JSON.stringify({
+      m: match,
+      i: idea,
+      d: Array.from(this._data.data.entries()),
+      e: edges,
+      vc: this._vertexCount,
+      ec: this._edgeCount,
+      c: this.concrete,
+    });
   }
 
   // add a vertex to the graph

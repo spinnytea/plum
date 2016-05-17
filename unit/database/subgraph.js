@@ -487,4 +487,31 @@ describe('subgraph', function() {
       expect(copy[key].get('a')).to.equal(1);
     });
   }); // end copyParentyThing
+
+  describe('encoding/decoding', function() {
+    it('stringify', function() {
+      const sg = new subgraph.units.Subgraph();
+      const v1 = sg.addVertex(subgraph.matcher.id, '_test');
+      const v2 = sg.addVertex(subgraph.matcher.filler);
+      const v3 = sg.addVertex(subgraph.matcher.filler);
+      const link = links.get('thought_description');
+      sg.addEdge(v1, link, v2);
+      sg.addEdge(v2, link, v3);
+
+      sg.setData(v1, 'some value');
+
+      expect(sg.stringify()).to.equal('{"m":{' +
+        '"0":{"matcher":"id","data":"_test","options":{"transitionable":false,"pointer":false}},' +
+        '"1":{"matcher":"filler","options":{"transitionable":false,"pointer":false}},' +
+        '"2":{"matcher":"filler","options":{"transitionable":false,"pointer":false}}' +
+        '},"i":{"0":"_test"},"d":[[0,"some value"]],"e":{' +
+        '"0":{"src":0,"link":"thought_description","dst":1,"options":{"pref":0,"transitive":false,"transitionable":false}},' +
+        '"1":{"src":1,"link":"thought_description","dst":2,"options":{"pref":0,"transitive":false,"transitionable":false}}' +
+        '},"vc":3,"ec":2,"c":false}');
+    });
+
+    it.skip('parse');
+
+    it.skip('they are symmetric');
+  }); // end encoding/decoding
 }); // end subgraph
