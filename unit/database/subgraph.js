@@ -489,6 +489,15 @@ describe('subgraph', function() {
   }); // end copyParentyThing
 
   describe('encoding/decoding', function() {
+    const the_string = '{"m":{' +
+      '"0":{"matcher":"id","data":"_test","options":{"transitionable":false,"pointer":false}},' +
+      '"1":{"matcher":"filler","options":{"transitionable":false,"pointer":false}},' +
+      '"2":{"matcher":"filler","options":{"transitionable":false,"pointer":false}}' +
+      '},"i":{"0":"_test"},"d":[[0,"some value"]],"e":{' +
+      '"0":{"src":0,"link":"thought_description","dst":1,"options":{"pref":0,"transitive":false,"transitionable":false}},' +
+      '"1":{"src":1,"link":"thought_description","dst":2,"options":{"pref":0,"transitive":false,"transitionable":false}}' +
+      '},"vc":3,"ec":2,"c":false}';
+
     it('stringify', function() {
       const sg = new subgraph.units.Subgraph();
       const v1 = sg.addVertex(subgraph.matcher.id, '_test');
@@ -500,14 +509,7 @@ describe('subgraph', function() {
 
       sg.setData(v1, 'some value');
 
-      expect(sg.stringify()).to.equal('{"m":{' +
-        '"0":{"matcher":"id","data":"_test","options":{"transitionable":false,"pointer":false}},' +
-        '"1":{"matcher":"filler","options":{"transitionable":false,"pointer":false}},' +
-        '"2":{"matcher":"filler","options":{"transitionable":false,"pointer":false}}' +
-        '},"i":{"0":"_test"},"d":[[0,"some value"]],"e":{' +
-        '"0":{"src":0,"link":"thought_description","dst":1,"options":{"pref":0,"transitive":false,"transitionable":false}},' +
-        '"1":{"src":1,"link":"thought_description","dst":2,"options":{"pref":0,"transitive":false,"transitionable":false}}' +
-        '},"vc":3,"ec":2,"c":false}');
+      expect(sg.stringify()).to.equal(the_string);
     });
 
     it.skip('parse');
