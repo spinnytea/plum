@@ -186,7 +186,6 @@ class Subgraph {
   //
 
   getMatch(id) {
-    // XXX should this return a promise?
     return this._match.get(id);
   }
 
@@ -243,6 +242,7 @@ class Subgraph {
     } else {
       // reset all vertices
       // FIXME this should be internal to the object, or create a new one
+      // this._data = new LazyCopyObject(); // ... can't use a class before it'd declared ... why is the constructor allowed?
       this._data.data = new Map();
       this._data.parent = undefined;
     }
@@ -251,7 +251,6 @@ class Subgraph {
   //
   
   getEdge(id) {
-    // XXX should this return a promise?
     return this._edges.get(id);
   }
   allEdges() {
