@@ -311,31 +311,6 @@ describe('subgraph', function() {
         sg.setData(v, 'taters');
         return expect(sg.getData(v)).to.eventually.equal('taters');
       });
-
-      it('idea without data', function() {
-        const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
-        return sg.getData(v).then(function(data) {
-          expect(data).to.equal(undefined);
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal(undefined);
-        });
-      });
-
-      // XXX I don't know how to NOT make this an integration test; I mean, it is, isn't it?
-      it('idea with data', function() {
-        const id = '_test';
-        const v = sg.addVertex(subgraph.matcher.id, { id: id });
-        return ideas.proxy(id).setData('banana').then(function() {
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal('banana');
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal('banana');
-          return ideas.delete(id);
-        });
-      });
     }); // end getData
 
     it('setData', function() {

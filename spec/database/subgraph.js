@@ -5,10 +5,41 @@ const links = require('../../src/database/links');
 const subgraph = require('../../src/database/subgraph');
 
 describe('subgraph', function() {
+  describe('Subgraph', function() {
+    let sg;
+    beforeEach(function() { sg = new subgraph.units.Subgraph(); });
+
+    describe('getData', function() {
+      it('idea without data', function() {
+        const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
+        return sg.getData(v).then(function(data) {
+          expect(data).to.equal(undefined);
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal(undefined);
+        });
+      });
+      
+      it('idea with data', function() {
+        const id = '_test';
+        const v = sg.addVertex(subgraph.matcher.id, { id: id });
+        return ideas.proxy(id).setData('banana').then(function() {
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal('banana');
+          return sg.getData(v);
+        }).then(function(data) {
+          expect(data).to.equal('banana');
+          return ideas.delete(id);
+        });
+      });
+    }); // end getData
+  }); // end Subgraph
+
   describe('matcher', function() {
     // matcher.id shouldn't ever actually be used in subgraph.search
     // it doesn't even really make sense in the context of matchRef (since it doesn't use data)
-    it.skip('id: basic search', function() {
+    it.skip('id', function() {
       var mark = ideas.create();
       var apple = ideas.create();
       mark.link(links.get('thought_description'), apple);
@@ -26,7 +57,7 @@ describe('subgraph', function() {
       expect(sg.getIdea(a).id).to.equal(apple.id);
     });
 
-    it.skip('filler: basic search', function() {
+    it.skip('filler', function() {
       var mark = ideas.create();
       var apple = ideas.create();
       mark.link(links.get('thought_description'), apple);
@@ -44,7 +75,7 @@ describe('subgraph', function() {
       expect(sg.getIdea(a).id).to.equal(apple.id);
     });
 
-    it.skip('exact: basic search', function() {
+    it.skip('exact', function() {
       var mark = ideas.create();
       var apple = ideas.create({'thing': 3.14});
       mark.link(links.get('thought_description'), apple);
@@ -71,7 +102,7 @@ describe('subgraph', function() {
       expect(result.length).to.equal(0);
     });
 
-    it.skip('similar: basic search', function() {
+    it.skip('similar', function() {
       var mark = ideas.create();
       var apple = ideas.create({'thing1': 3.14, 'thing2': 2.71});
       mark.link(links.get('thought_description'), apple);
@@ -98,7 +129,7 @@ describe('subgraph', function() {
       expect(result.length).to.equal(0);
     });
 
-    it.skip('substring: basic search', function() {
+    it.skip('substring', function() {
       var mark = ideas.create();
       var apple = ideas.create({'thing': 'ExPeNsIvE'});
       mark.link(links.get('thought_description'), apple);
