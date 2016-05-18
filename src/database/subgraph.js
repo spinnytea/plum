@@ -80,13 +80,13 @@ class Subgraph {
     this._data.flatten();
     this._edges.flatten();
 
-    var match = {};
+    const match = {};
     for(let [id, value] of this._match.data.entries())
       match[id] = _.assign({}, value, {
         matcher: value.matcher.name
       });
 
-    var edges = {};
+    const edges = {};
     for(let [id, value] of this._edges.data.entries())
       edges[id] = _.assign({}, value, {
         link: value.link.name
@@ -102,6 +102,35 @@ class Subgraph {
       c: this.concrete,
     });
   }
+
+  static parse(json) {
+    json = JSON.parse(json);
+    const sg = new Subgraph();
+
+    _.forEach(json.m, function(value, id) {
+      sg._match.set(+id, _.assign(value, { matcher: exports.matcher[value.matcher] }));
+    });
+
+    json.i.forEach(function([id, idea]) {
+      sg._idea.set(id, ideas.proxy(idea));
+    });
+
+    json.d.forEach(function([id, data]) {
+      sg._data.set(id, data);
+    });
+
+    _.forEach(json.e, function(value, id) {
+      sg._edges.set(+id, _.assign(value, { link: links.get(value.link) }));
+    });
+
+    sg._vertexCount = json.vc;
+    sg._edgeCount = json.ec;
+    sg.concrete = json.c;
+
+    return sg;
+  }
+
+  //
 
   // add a vertex to the graph
   // this only specifies match data
@@ -284,7 +313,7 @@ class Subgraph {
     // TODO this could be made faster
     // TODO move into LazyCopyObject; but it makes some assumptions about i/_edgeCount so I don't want to
     if(!this.__all_edges__) {
-      var array = new Array(this._edgeCount);
+      const array = new Array(this._edgeCount);
       for(let i=0; i<this._edgeCount; i++)
         array[i] = this._edges.get(i);
       this.__all_edges__ = Object.freeze(array);
@@ -346,6 +375,7 @@ exports.matcher = {
   },
   similar: function similar(data, matchData) {
     // matchData should be contained within data
+    // TODO this could be made faster
     return _.isEqual(data, _.merge(_.cloneDeep(data), matchData));
   },
   substring: function substring(data, matchData) {

@@ -492,7 +492,7 @@ describe('subgraph', function() {
     const the_string = '{"m":{' +
       '"0":{"matcher":"id","data":"_test","options":{"transitionable":false,"pointer":false}},' +
       '"1":{"matcher":"filler","options":{"transitionable":false,"pointer":false}},' +
-      '"2":{"matcher":"filler","options":{"transitionable":false,"pointer":false}}' +
+      '"2":{"matcher":"exact","data":5,"options":{"transitionable":false,"pointer":false}}' +
       '},"i":[[0,"_test"]],"d":[[0,"some value"]],"e":{' +
       '"0":{"src":0,"link":"thought_description","dst":1,"options":{"pref":0,"transitive":false,"transitionable":false}},' +
       '"1":{"src":1,"link":"thought_description","dst":2,"options":{"pref":0,"transitive":false,"transitionable":false}}' +
@@ -502,7 +502,7 @@ describe('subgraph', function() {
       const sg = new subgraph.units.Subgraph();
       const v1 = sg.addVertex(subgraph.matcher.id, '_test');
       const v2 = sg.addVertex(subgraph.matcher.filler);
-      const v3 = sg.addVertex(subgraph.matcher.filler);
+      const v3 = sg.addVertex(subgraph.matcher.exact, 5);
       const link = links.get('thought_description');
       sg.addEdge(v1, link, v2);
       sg.addEdge(v2, link, v3);
@@ -512,8 +512,30 @@ describe('subgraph', function() {
       expect(sg.stringify()).to.equal(the_string);
     });
 
-    it.skip('parse');
+    it('parse', function() {
+      const sg = subgraph.units.Subgraph.parse(the_string);
 
-    it.skip('they are symmetric');
+      expect(Array.from(sg._match.data.entries())).to.deep.equal([
+        [0, { matcher: subgraph.matcher.id, data: '_test', options: { transitionable: false, pointer: false }}],
+        [1, { matcher: subgraph.matcher.filler, options: { transitionable: false, pointer: false }}],
+        [2, { matcher: subgraph.matcher.exact, data: 5, options: { transitionable: false, pointer: false }}]
+      ]);
+      expect(Array.from(sg._idea.entries())).to.deep.equal([[0, ideas.proxy('_test')]]);
+      expect(Array.from(sg._data.data.entries())).to.deep.equal([[0, 'some value']]);
+      expect(Array.from(sg._edges.data.entries())).to.deep.equal([
+        [0, { src: 0, link: links.get('thought_description'), dst: 1, options: { pref: 0, transitive: false, transitionable: false }}],
+        [1, { src: 1, link: links.get('thought_description'), dst: 2, options: { pref: 0, transitive: false, transitionable: false }}]
+      ]);
+
+      expect(sg._vertexCount).to.equal(3);
+      expect(sg._edgeCount).to.equal(2);
+      expect(sg.concrete).to.equal(false);
+    });
+
+    it('they are symmetric', function() {
+      const sg = subgraph.units.Subgraph.parse(the_string);
+      const str = sg.stringify();
+      expect(str).to.equal(the_string);
+    });
   }); // end encoding/decoding
 }); // end subgraph
