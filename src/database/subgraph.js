@@ -48,6 +48,8 @@ class Subgraph {
     // cache value for:
     //   sg._match.every(function(v, id) { return (id in sg._idea); })
     //   Object.keys(sg._match).deep.equals(Object.keys(sg._idea))
+    // XXX can we assume this is concrete before we've run the search? what if the edges don't match?
+    // - should we just set concrete to false whenever we add a vertex or edge (it's probably good enough shorthand)
     this.concrete = true;
   }
 
@@ -237,6 +239,8 @@ class Subgraph {
       });
     }
 
+    // TODO set concrete to false if there is no edge between the src and dst
+
     return id;
   }
 
@@ -248,6 +252,9 @@ class Subgraph {
 
   getIdea(id) {
     return this._idea.get(id);
+  }
+  hasIdea(id) {
+    return this._idea.has(id);
   }
   allIdeas() {
     return new Map(this._idea);

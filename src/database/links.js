@@ -18,6 +18,8 @@ const oppList = {};
 function create(name, options) {
   options = _.merge({
     transitive: false, // some search operations will follow transitive edges (e.g. a->b->c, a->? may find b, c)
+                       // Note: a SHOULD BE the more specific case, and c SHOULD BE the more general case
+                       // E.g. A square is B rectangle is C quadrilateral
     directed: true, // does the edge have a direction? is it a directed edge?
   }, options);
   const directed = !!options.directed;
