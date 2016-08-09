@@ -1,6 +1,6 @@
 'use strict';
 const bluebird = require('bluebird');
-// const subgraph = require('../subgraph'); // TODO remove
+const subgraph = require('../subgraph');
 
 // find a list of subgraphs in the database that matches the supplied subgraph
 //
@@ -44,6 +44,7 @@ module.exports.units.getBranches = getBranches;
 module.exports.units.verifyEdge = verifyEdge;
 module.exports.units.expandEdge = expandEdge;
 
+// find an edge what's partially on the graph, and partially off the graph
 function findEdgeToExpand(sg) {
   const selected = {
     edge: undefined, // edge; which one we are going to expand
@@ -52,8 +53,9 @@ function findEdgeToExpand(sg) {
     isValid: true
   };
 
-  // TODO we can do better than looping over every edge every time
+  // FIXME we can do better than looping over every edge every time
   // - e.g. sort by priority and stop looping when we get to a lower priority
+  // -      and remove the edges from the list once we are done with them (that 3x down below)
   selected.isValid = sg.allEdges().every(function(currEdge) {
     const isSrc = sg.hasIdea(currEdge.src);
     const isDst = sg.hasIdea(currEdge.dst);
@@ -61,8 +63,10 @@ function findEdgeToExpand(sg) {
     if(isSrc ^ isDst) {
       updateSelected(sg, currEdge, selected, isSrc);
     } else if(isSrc && isDst) {
+      // XXX do we need to verify the edge every time? like, this is sg.allEdges, ALL EDGES - this is one major reason why subgraph matching is slow
       return verifyEdge(sg, currEdge);
     }
+    // if neither src nor dst, then we can't expand the current graph
 
     return true;
   });
@@ -98,13 +102,13 @@ function getBranches(sg, edge, isForward) {
       const visited = new Set(); // an index of all the places we've been
       const branches = new Map(); // the return list of everything we've found (indexed to de-dup, return the values)
 
-      let proxy;
+      let idea;
       while(next.length) {
-        proxy = next.pop();
-        if(visited.has(proxy.id)) continue;
-        visited.add(proxy.id);
+        idea = next.pop();
+        if(visited.has(idea.id)) continue;
+        visited.add(idea.id);
 
-        (yield proxy.link(link)).forEach(function(p) {
+        (yield idea.link(link)).forEach(function(p) {
           next.push(p);
           branches.set(p.id, p);
         });
@@ -140,14 +144,14 @@ function verifyEdge(sg, edge) {
       const visited = new Set(); // an index of all the places we've been
       const targetId = sg.getIdea(edge.dst).id;
 
-      let proxy;
+      let idea;
       while(next.length) {
-        proxy = next.pop();
-        if(visited.has(proxy.id)) continue;
-        visited.add(proxy.id);
+        idea = next.pop();
+        if(visited.has(idea.id)) continue;
+        visited.add(idea.id);
 
         // XXX reformat/refactor this so it looks cleaner
-        if((yield proxy.link(link)).some(function(p) {
+        if((yield idea.link(link)).some(function(p) {
           if(p.id === targetId) return true;
           next.push(p);
           return false;
@@ -158,7 +162,7 @@ function verifyEdge(sg, edge) {
     } else {
       const ideas = yield sg.getIdea(edge.src).link(edge.link);
       const targetId = sg.getIdea(edge.dst).id;
-      return ideas.some(function(proxy) { return proxy.id === targetId; });
+      return ideas.some(function(idea) { return idea.id === targetId; });
     }
   })();
 }
@@ -166,8 +170,48 @@ function verifyEdge(sg, edge) {
 function expandEdge(sg, selected) {
   const nextSteps = [];
 
-  if(selected.edge) {
-    // FIXME do it
+  // XXX remove this if statement, it's spaghetti code; if we don't need to exapand an edge, then we shouldn't get here
+  if(selected.edge && selected.branches) {
+    const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
+    let match = sg.getMatch(target_vertex_id);
+    let matchData = match.data;
+
+    // XXX what if the pointer vertex hasn't been resolved yet? should this be considered when choosing an edge to expand?
+    // following the pointer requires a more complex pre match thing
+    // if this points to a pointer, we need to follow that as well
+    if(match.options.pointer) {
+      // XXX stop early if there is data defined? will there ever be data defined?
+      let m = sg.getMatch(matchData);
+      while(m.options.pointer) {
+        matchData = m.data;
+        m = sg.getMatch(matchData);
+      }
+      matchData = sg.getData(matchData);
+    }
+
+    // filter all the branches that match
+    var matchedBranches = selected.branches.filter(bluebird.coroutine(function*(idea) { // XXX I don't know if I can can pass bluebird.coroutine into the filter directly
+      if(match.matcher === subgraph.matcher.id)
+        return match.matcher(idea, matchData);
+      else
+        return match.matcher(yield idea.data(), matchData);
+    }));
+
+    // build the results
+    if(matchedBranches.length === 0) {
+      // noop
+    } else if(matchedBranches.length === 1) {
+      // we can reuse subgraph at the next level
+      sg._idea.set(target_vertex_id, matchedBranches[0]);
+      nextSteps.push(sg);
+    } else {
+      // we need to branch; create a new subgraph instance for each level
+      matchedBranches.forEach(function(idea) {
+        var s = sg.copy();
+        s._idea.set(target_vertex_id, idea);
+        nextSteps.push(s);
+      });
+    }
   }
 
   return nextSteps;

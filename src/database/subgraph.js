@@ -96,7 +96,7 @@ class Subgraph {
 
     return JSON.stringify({
       m: match,
-      i: Array.from(this._idea.entries()).map(function([id, proxy]) { return [id, proxy.id]; }),
+      i: Array.from(this._idea.entries()).map(function([id, idea]) { return [id, idea.id]; }),
       d: Array.from(this._data.data.entries()),
       e: edges,
       vc: this._vertexCount,
@@ -151,16 +151,16 @@ class Subgraph {
     // TODO do these NEED to be specified? can we leave them undefined?
     options = _.merge({
       transitionable: false,
-      pointer: false
+      pointer: false, // pointer means the match data comes from a different vertex (the data comes from the idea that backs that vertex)
     }, options);
 
-    if (!matcher || matcher !== exports.matcher[matcher.name])
+    if(!matcher || matcher !== exports.matcher[matcher.name])
       throw new RangeError('invalid matcher');
-    if (options.pointer && this.getMatch(data) === undefined)
+    if(options.pointer && this.getMatch(data) === undefined)
       throw new RangeError('pointer target (match.data) must already be a vertex');
-    if (matcher !== exports.matcher.filler && data === undefined)
+    if(matcher !== exports.matcher.filler && data === undefined)
       throw new RangeError('match data must be defined');
-    if (matcher === exports.matcher.substring)
+    if(matcher === exports.matcher.substring)
       data.value = data.value.toLowerCase();
 
     const id = this._vertexCount;
@@ -280,9 +280,9 @@ class Subgraph {
       return Promise.resolve(undefined);
     } else {
       // try to load the data
-      let proxy = this.getIdea(id);
+      let idea = this.getIdea(id);
       let self = this;
-      return proxy.data().then(function(data) {
+      return idea.data().then(function(data) {
         if(data === undefined) {
           self._data.set(id, null);
         } else {
