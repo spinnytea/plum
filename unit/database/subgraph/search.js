@@ -2,6 +2,8 @@
 
 describe('subgraph', function() {
   describe('search', function() {
+    it.skip('edge order', function() {}); // end edge order
+
     describe('findEdgeToExpand', function() {
       it.skip('test it');
     }); // end findEdgeToExpand

@@ -1,4 +1,5 @@
 'use strict';
+const _ = require('lodash');
 const bluebird = require('bluebird');
 const subgraph = require('../subgraph');
 
@@ -11,7 +12,11 @@ const subgraph = require('../subgraph');
 // Note: it's best if the subgraph is flat before running this
 module.exports = function search(sg) {
   if(sg.concrete) return [sg];
-  return recursiveSearch(sg, sg.allEdges());
+
+  // sort high[0,1,...] to low[...,11,12]
+  var edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
+
+  return recursiveSearch(sg, edges);
 };
 
 function recursiveSearch(sg, edges) {
@@ -51,41 +56,46 @@ module.exports.units.expandEdge = expandEdge;
 function findEdgeToExpand(sg, edges) {
   let selected;
 
-  // TODO we can do better than looping over every edge
-  // - e.g. sort by priority and stop looping when we get to a lower priority
-  for(let currEdge of edges) {
-    const isSrc = sg.hasIdea(currEdge.src);
-    const isDst = sg.hasIdea(currEdge.dst);
+  for(let edge of edges) {
+    // since the edges are sorted by pref, we can exit early
+    if(selected && edge.options.pref < selected.edge.options.pref)
+      return selected;
 
-    if(isSrc ^ isDst) {
-      selected = updateSelected(sg, currEdge, isSrc, selected);
-    }
+    selected = updateSelected(sg, edge, selected);
   }
 
   return selected;
 }
 
-function updateSelected(sg, currEdge, isForward, prevEdge) {
+function updateSelected(sg, edge, selected) {
   // if we've already pick an edge with a higher pref, then we don't need to consider this edge
-  if(prevEdge && prevEdge.edge.options.pref > currEdge.options.pref)
-    return;
+  if(selected && selected.edge.options.pref > edge.options.pref)
+    return selected;
+
+  const isSrc = sg.hasIdea(edge.src);
+  const isDst = sg.hasIdea(edge.dst);
+  // if they are both true or both false, then we shouldn't consider this edge
+  // (side note: they shouldn't be in the list anymore if they are both true)
+  // we only want to select this edge if one is specified and the other is not
+  if(isSrc === isDst) return selected;
 
   // we can't consider this edge if the target object hasn't be identified
-  const match = sg.getMatch(isForward?currEdge.dst:currEdge.src);
+  // FIXME all the comments in expandEdge are referencing this! we need to keep following the pointer to see if this is an edge we CAN consider
+  const match = sg.getMatch(isSrc?edge.dst:edge.src);
   if(match.options.pointer && sg.hasIdea(match.data))
-    return;
+    return selected;
 
   const currBranches = getBranches();
 
-  if(!prevEdge || prevEdge.edge.options.pref < currEdge.options.pref || currBranches.length < prevEdge.branches.length) {
+  if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
     return {
-      edge: currEdge,
+      edge: edge,
       branches: currBranches,
-      isForward: isForward,
+      isForward: isSrc,
     };
   }
 
-  return prevEdge;
+  return selected;
 }
 
 function getBranches(sg, edge, isForward) {
