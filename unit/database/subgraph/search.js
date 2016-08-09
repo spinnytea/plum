@@ -14,6 +14,10 @@ describe('subgraph', function() {
       it.skip('test it');
     }); // end getBranches
 
+    describe('verifyEdges', function() {
+      it.skip('test it');
+    }); // end verifyEdges
+
     describe('verifyEdge', function() {
       it.skip('test it');
     }); // end verifyEdge
