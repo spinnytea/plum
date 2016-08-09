@@ -10,14 +10,16 @@ const subgraph = require('../subgraph');
 //
 // Note: it's best if the subgraph is flat before running this
 module.exports = function search(sg) {
-  if(sg.concrete)
-    return [sg];
-  
-  const selected = findEdgeToExpand(sg);
-  
-  // there are errors in the matching
-  if(!selected.isValid) return [];
+  if(sg.concrete) return [sg];
+  return recursiveSearch(sg, sg.allEdges());
+};
 
+function recursiveSearch(sg, edges) {
+  // prune and validate edges that are finished
+  edges = verifyEdges(sg, edges);
+  if(!edges) return [];
+
+  const selected = findEdgeToExpand(sg, edges);
   const nextSteps = expandEdge(sg, selected);
 
   // there isn't an edge to expand
@@ -31,44 +33,37 @@ module.exports = function search(sg) {
   } else {
     // do the next iteration of searches
     return nextSteps.reduce(function(ret, sg) {
-      Array.prototype.push.apply(ret, search(sg));
+      Array.prototype.push.apply(ret, recursiveSearch(sg, edges));
       return ret;
     }, []);
   }
-};
+}
 
 Object.defineProperty(exports, 'units', { value: {} });
 module.exports.units.findEdgeToExpand = findEdgeToExpand;
 module.exports.units.updateSelected = updateSelected;
 module.exports.units.getBranches = getBranches;
+module.exports.units.verifyEdges = verifyEdges;
 module.exports.units.verifyEdge = verifyEdge;
 module.exports.units.expandEdge = expandEdge;
 
 // find an edge what's partially on the graph, and partially off the graph
-function findEdgeToExpand(sg) {
+function findEdgeToExpand(sg, edges) {
   const selected = {
     edge: undefined, // edge; which one we are going to expand
     branches: undefined, // array; the vertices it points to
     isForward: undefined, // true: src is defined, dst is not; false: dst is defined, src is not
-    isValid: true
   };
 
-  // FIXME we can do better than looping over every edge every time
+  // FIXME we can do better than looping over every edge
   // - e.g. sort by priority and stop looping when we get to a lower priority
-  // -      and remove the edges from the list once we are done with them (that 3x down below)
-  selected.isValid = sg.allEdges().every(function(currEdge) {
+  edges.forEach(function(currEdge) {
     const isSrc = sg.hasIdea(currEdge.src);
     const isDst = sg.hasIdea(currEdge.dst);
 
     if(isSrc ^ isDst) {
       updateSelected(sg, currEdge, selected, isSrc);
-    } else if(isSrc && isDst) {
-      // XXX do we need to verify the edge every time? like, this is sg.allEdges, ALL EDGES - this is one major reason why subgraph matching is slow
-      return verifyEdge(sg, currEdge);
     }
-    // if neither src nor dst, then we can't expand the current graph
-
-    return true;
   });
 
   return selected;
@@ -123,6 +118,30 @@ function getBranches(sg, edge, isForward) {
         return yield sg.getIdea(edge.dst).link(edge.link.opposite);
     }
   })();
+}
+
+// 1) make a copy of edges (we don't want to prune the original)
+// 2) collect the edges that have src and dst, since we don't need to consider them
+// 3) only retain the edges that are not done in "edges"
+// return the pruned array of edges if the finished ones are valid
+// return undefined if the subgraph is invalid
+function verifyEdges(sg, edges) {
+  let done = [];
+
+  edges = edges.filter(function(edge) {
+    if(sg.hasIdea(edge.src) && sg.hasIdea(edge.dst)) {
+      done.push(edge);
+      return false;
+    } else {
+      return true;
+    }
+  });
+
+  // if any of the edges are invalid, then this subgraph match is invalid
+  if(!done.every(function(edge) { return verifyEdge(sg, edge); }))
+    return undefined;
+
+  return edges;
 }
 
 // specifically for when src and dst have ideas
