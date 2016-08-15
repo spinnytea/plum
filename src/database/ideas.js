@@ -75,7 +75,7 @@ exports.create = bluebird.coroutine(function*(data) {
   const id = yield ids.next(NEXT_ID);
   memory.set(id, new CoreIdea(id, _.cloneDeep(data)));
   if(data) return exports.save(id);
-  else return Promise.resolve(new ProxyIdea(id));
+  else return new ProxyIdea(id);
 });
 
 exports.load = bluebird.coroutine(function*(idea) {
@@ -87,7 +87,7 @@ exports.load = bluebird.coroutine(function*(idea) {
     memory.set(proxy.id, new CoreIdea(proxy.id, data, links));
   }
 
-  return Promise.resolve(proxy);
+  return proxy;
 });
 exports.proxy = function(idea) {
   return new ProxyIdea(getID(idea));
@@ -102,7 +102,7 @@ exports.save = bluebird.coroutine(function*(idea) {
     yield saveFn(proxy.id, 'links', core.links);
   }
 
-  return Promise.resolve(proxy);
+  return proxy;
 });
 
 exports.close = bluebird.coroutine(function*(idea) {
@@ -137,13 +137,41 @@ exports.context = bluebird.coroutine(function*(name) {
   const id = context[name];
 
   if(id) {
-    return Promise.resolve(new ProxyIdea(id));
+    return new ProxyIdea(id);
   } else {
     let proxy = yield exports.create({name:name});
     context[name] = proxy.id;
     yield config.set('ideas', 'context', context);
     return proxy;
   }
+});
+
+/**
+ * create all the ideas in verts
+ * link all the ideas according to ls
+ *
+ * @param verts { key: data, ... }
+ * @param edges [ [src, link, dst], ... ]
+ * @return verts, but now the data is actually proxys
+ */
+exports.createGraph = bluebird.coroutine(function*(verts, edges) {
+  // get the list of keys up front so we have a standard order
+  const idea_keys = _.keys(verts);
+  // create all the objects
+  const all = yield Promise.all(idea_keys.map((k)=>exports.create(verts[k])));
+  // map the ideas back onto the original verts object
+  idea_keys.forEach(function(k, idx) { verts[k] = all[idx]; });
+
+  // add all the links
+  yield Promise.all(edges.map(function([src, link, dst]) {
+    return verts[src].addLink(links.get(link), verts[dst]);
+  }));
+
+  // save all the ideas (which saves the links)
+  yield Promise.all(_.values(verts).map(exports.save));
+
+  // return the verts object
+  return verts;
 });
 
 

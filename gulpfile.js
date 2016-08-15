@@ -88,7 +88,11 @@ gulp.task('coverage-unit', ['lint'], function (cb) {
         .on('end', cb);
     });
 });
-gulp.task('unitd', [], function() {
+gulp.task('unitcd', [], function() {
   gulp.watch(files, ['coverage-unit']);
   gulp.start('coverage-unit');
+});
+gulp.task('unitd', [], function() {
+  gulp.watch(files, ['unit']);
+  gulp.start('unit');
 });

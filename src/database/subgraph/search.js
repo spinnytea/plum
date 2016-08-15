@@ -10,11 +10,11 @@ const subgraph = require('../subgraph');
 // we use edges to find new ones
 //
 // Note: it's best if the subgraph is flat before running this
-module.exports = function search(sg) {
+module.exports = exports = function search(sg) {
   if(sg.concrete) return [sg];
 
   // sort high[0,1,...] to low[...,11,12]
-  var edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
+  let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
 
   return recursiveSearch(sg, edges);
 };
@@ -45,16 +45,16 @@ function recursiveSearch(sg, edges) {
 }
 
 Object.defineProperty(exports, 'units', { value: {} });
-module.exports.units.findEdgeToExpand = findEdgeToExpand;
-module.exports.units.updateSelected = updateSelected;
-module.exports.units.getBranches = getBranches;
-module.exports.units.verifyEdges = verifyEdges;
-module.exports.units.verifyEdge = verifyEdge;
-module.exports.units.expandEdge = expandEdge;
+exports.units.findEdgeToExpand = findEdgeToExpand;
+exports.units.updateSelected = updateSelected;
+exports.units.getBranches = getBranches;
+exports.units.verifyEdges = verifyEdges;
+exports.units.verifyEdge = verifyEdge;
+exports.units.expandEdge = expandEdge;
 
 // find an edge what's partially on the graph, and partially off the graph
 function findEdgeToExpand(sg, edges) {
-  let selected;
+  let selected = null;
 
   for(let edge of edges) {
     // since the edges are sorted by pref, we can exit early
@@ -67,6 +67,7 @@ function findEdgeToExpand(sg, edges) {
   return selected;
 }
 
+// find an edge what's partially on the graph, and partially off the graph
 function updateSelected(sg, edge, selected) {
   // if we've already pick an edge with a higher pref, then we don't need to consider this edge
   if(selected && selected.edge.options.pref > edge.options.pref)
@@ -215,7 +216,7 @@ function expandEdge(sg, selected) {
   }
 
   // filter all the branches that match
-  var matchedBranches = selected.branches.filter(bluebird.coroutine(function*(idea) { // XXX I don't know if I can can pass bluebird.coroutine into the filter directly
+  let matchedBranches = selected.branches.filter(bluebird.coroutine(function*(idea) { // XXX I don't know if I can can pass bluebird.coroutine into the filter directly
     if(match.matcher === subgraph.matcher.id)
       return match.matcher(idea, matchData);
     else
@@ -232,7 +233,7 @@ function expandEdge(sg, selected) {
   } else {
     // we need to branch; create a new subgraph instance for each level
     return matchedBranches.map(function (idea) {
-      var s = sg.copy();
+      let s = sg.copy();
       s._idea.set(target_vertex_id, idea);
       return s;
     });

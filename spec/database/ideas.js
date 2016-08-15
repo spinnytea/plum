@@ -69,8 +69,7 @@ describe('ideas', function() {
     });
   });
 
-  it('delete', function() {
-    return bluebird.coroutine(function*() {
+  it('delete', bluebird.coroutine(function*() {
       const one = yield ideas.create('one');
       const two = yield ideas.create('two');
       const link = links.get('thought_description');
@@ -102,23 +101,41 @@ describe('ideas', function() {
       expect(ideas.units.memory.has(one.id)).to.equal(false);
       expect(ideas.boundaries.database.data).to.not.have.property(one.id);
       expect(ideas.boundaries.database.links).to.not.have.property(one.id);
-    })();
-  });
+  }));
 
-  it('context', function() {
+  it('context', bluebird.coroutine(function*() {
     const name = '_test_' + Math.random();
-    return ideas.context(name).then(function(proxy) {
-      expect(proxy).to.have.property('id');
-      expect(ideas.boundaries.database.data).to.have.property(proxy.id);
-      return ideas.context(name).then(function(proxy2) {
-        expect(proxy2).to.deep.equal(proxy);
-      });
-    });
-  });
+
+    let proxy = yield ideas.context(name);
+    expect(proxy).to.have.property('id');
+    expect(ideas.boundaries.database.data).to.have.property(proxy.id);
+
+    let proxy2 = yield ideas.context(name);
+    expect(proxy2).to.deep.equal(proxy);
+  }));
 
   it('context (invalid arg)', function() {
     return expect(ideas.context()).to.eventually.be.rejectedWith(TypeError);
   });
+
+  it('createGraph', bluebird.coroutine(function*() {
+    var verts = {
+      person: {name:'person'},
+      mark: {name:'mark'},
+    };
+    var edges = [
+      ['mark', 'type_of', 'person'],
+    ];
+
+    yield ideas.createGraph(verts, edges);
+
+    expect(verts.person).to.have.property('id');
+    expect(verts.mark).to.have.property('id');
+    expect(yield verts.person.data()).to.deep.equal({name:'person'});
+    expect(yield verts.mark.data()).to.deep.equal({name:'mark'});
+
+    expect(yield verts.mark.links(links.get('type_of'))).to.deep.equal([verts.person]);
+  }));
 
   //
 
