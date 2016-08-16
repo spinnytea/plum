@@ -11,7 +11,7 @@ const subgraph = require('../subgraph');
 //
 // Note: it's best if the subgraph is flat before running this
 module.exports = exports = function search(sg) {
-  if(sg.concrete) return [sg];
+  if(sg.concrete) return Promise.resolve([sg]);
 
   // sort high[0,1,...] to low[...,11,12]
   let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
@@ -20,28 +20,31 @@ module.exports = exports = function search(sg) {
 };
 
 function recursiveSearch(sg, edges) {
-  // prune and validate edges that are finished
-  edges = exports.units.verifyEdges(sg, edges);
-  if(!edges) return [];
+  return bluebird.coroutine(function*() {
+    // prune and validate edges that are finished
+    edges = exports.units.verifyEdges(sg, edges);
+    if(!edges) return [];
 
-  const selected = exports.units.findEdgeToExpand(sg, edges);
-  const nextSteps = (selected ? exports.units.expandEdge(sg, selected) : []);
+    const selected = yield exports.units.findEdgeToExpand(sg, edges);
+    const nextSteps = (selected ? yield exports.units.expandEdge(sg, selected) : []);
 
-  // there isn't an edge to expand
-  if(nextSteps.leading === 0) {
-    // check all vertices to ensure they all have ideas defined
-    if(sg._vertexCount !== sg._idea.size || edges.length)
-      return [];
+    // there isn't an edge to expand
+    if(nextSteps.leading === 0) {
+      // check all vertices to ensure they all have ideas defined
+      if(sg._vertexCount !== sg._idea.size || edges.length)
+        return [];
 
-    sg.concrete = true;
-    return [sg];
-  } else {
-    // do the next iteration of searches
-    return nextSteps.reduce(function(ret, sg) {
-      Array.prototype.push.apply(ret, recursiveSearch(sg, edges));
-      return ret;
-    }, []);
-  }
+      sg.concrete = true;
+      return [sg];
+    } else {
+      // do the next iteration of searches
+      // FIXME you can't can pass bluebird.coroutine into the reduce directly
+      return nextSteps.reduce(bluebird.coroutine(function*(ret, sg) {
+        Array.prototype.push.apply(ret, yield recursiveSearch(sg, edges));
+        return ret;
+      }, []));
+    }
+  });
 }
 
 Object.defineProperty(exports, 'units', { value: {} });
@@ -54,49 +57,51 @@ exports.units.expandEdge = expandEdge;
 
 // find an edge what's partially on the graph, and partially off the graph
 function findEdgeToExpand(sg, edges) {
-  let selected = null;
+  return bluebird.coroutine(function*() {
+    let selected = null;
 
-  for(let edge of edges) {
-    // since the edges are sorted by pref, we can exit early
-    if(selected && edge.options.pref < selected.edge.options.pref)
-      return selected;
+    for(let edge of edges) {
+      // since the edges are sorted by pref, we can exit early
+      if(selected && edge.options.pref < selected.edge.options.pref)
+        return selected;
 
-    selected = exports.units.updateSelected(sg, edge, selected);
-  }
+      selected = yield exports.units.updateSelected(sg, edge, selected);
+    }
 
-  return selected;
+    return selected;
+  })();
 }
 
 // find an edge what's partially on the graph, and partially off the graph
 function updateSelected(sg, edge, selected) {
   // if we've already pick an edge with a higher pref, then we don't need to consider this edge
   if(selected && selected.edge.options.pref > edge.options.pref)
-    return selected;
+    return Promise.resolve(selected);
 
   const isSrc = sg.hasIdea(edge.src);
   const isDst = sg.hasIdea(edge.dst);
   // if they are both true or both false, then we shouldn't consider this edge
   // (side note: they shouldn't be in the list anymore if they are both true)
   // we only want to select this edge if one is specified and the other is not
-  if(isSrc === isDst) return selected;
+  if(isSrc === isDst) return Promise.resolve(selected);
 
   // we can't consider this edge if the target object hasn't be identified
   // FIXME all the comments in expandEdge are referencing this! we need to keep following the pointer to see if this is an edge we CAN consider
   const match = sg.getMatch(isSrc?edge.dst:edge.src);
   if(match.options.pointer && !sg.hasIdea(match.data))
+    return Promise.resolve(selected);
+
+  return exports.units.getBranches(sg, edge, isSrc).then(function(currBranches) {
+    if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
+      return {
+        edge: edge,
+        branches: currBranches,
+        isForward: isSrc,
+      };
+    }
+
     return selected;
-
-  const currBranches = exports.units.getBranches(sg, edge, isSrc);
-
-  if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
-    return {
-      edge: edge,
-      branches: currBranches,
-      isForward: isSrc,
-    };
-  }
-
-  return selected;
+  });
 }
 
 function getBranches(sg, edge, isForward) {
@@ -198,44 +203,47 @@ function verifyEdge(sg, edge) {
 }
 
 function expandEdge(sg, selected) {
-  const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
-  let match = sg.getMatch(target_vertex_id);
-  let matchData = match.data;
+  bluebird.coroutine(function*() {
+    const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
+    let match = sg.getMatch(target_vertex_id);
+    let matchData = match.data;
 
-  // XXX what if the pointer vertex hasn't been resolved yet? should this be considered when choosing an edge to expand?
-  // following the pointer requires a more complex pre match thing
-  // if this points to a pointer, we need to follow that as well
-  if(match.options.pointer) {
-    // XXX stop early if there is data defined? will there ever be data defined?
-    let m = sg.getMatch(matchData);
-    while(m.options.pointer) {
-      matchData = m.data;
-      m = sg.getMatch(matchData);
+    // XXX what if the pointer vertex hasn't been resolved yet? should this be considered when choosing an edge to expand?
+    // following the pointer requires a more complex pre match thing
+    // if this points to a pointer, we need to follow that as well
+    if(match.options.pointer) {
+      // XXX stop early if there is data defined? will there ever be data defined?
+      let m = sg.getMatch(matchData);
+      while(m.options.pointer) {
+        matchData = m.data;
+        m = sg.getMatch(matchData);
+      }
+      matchData = yield sg.getData(matchData);
     }
-    matchData = sg.getData(matchData);
-  }
 
-  // filter all the branches that match
-  let matchedBranches = selected.branches.filter(bluebird.coroutine(function*(idea) { // XXX I don't know if I can can pass bluebird.coroutine into the filter directly
-    if(match.matcher === subgraph.matcher.id)
-      return match.matcher(idea, matchData);
-    else
-      return match.matcher(yield idea.data(), matchData);
-  }));
+    // filter all the branches that match
+    // FIXME you can't can pass bluebird.coroutine into the filter directly
+    let matchedBranches = yield selected.branches.filter(bluebird.coroutine(function*(idea) {
+      if(match.matcher === subgraph.matcher.id)
+        return match.matcher(idea, matchData);
+      else
+        return match.matcher(yield idea.data(), matchData);
+    }));
 
-  // build the results
-  if(matchedBranches.length === 0) {
-    return [];
-  } else if(matchedBranches.length === 1) {
-    // we can reuse subgraph at the next level
-    sg._idea.set(target_vertex_id, matchedBranches[0]);
-    return [sg];
-  } else {
-    // we need to branch; create a new subgraph instance for each level
-    return matchedBranches.map(function (idea) {
-      let s = sg.copy();
-      s._idea.set(target_vertex_id, idea);
-      return s;
-    });
-  }
+    // build the results
+    if(matchedBranches.length === 0) {
+      return [];
+    } else if(matchedBranches.length === 1) {
+      // we can reuse subgraph at the next level
+      sg._idea.set(target_vertex_id, matchedBranches[0]);
+      return [sg];
+    } else {
+      // we need to branch; create a new subgraph instance for each level
+      return matchedBranches.map(function(idea) {
+        let s = sg.copy();
+        s._idea.set(target_vertex_id, idea);
+        return s;
+      });
+    }
+  });
 }

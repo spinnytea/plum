@@ -62,48 +62,48 @@ describe('subgraph', function() {
 
     describe('findEdgeToExpand', function() {
       const edges = [3, 3, 3, 2, 2, 1, 0].map(function(pref) { return { options: { pref: pref } }; });
-      function best(idx) {
-        subgraph.search.units.updateSelected.returnsArg(2);
-        subgraph.search.units.updateSelected.onCall(idx).returns({ edge: edges[idx] });
+      function setupBest(idx) {
+        subgraph.search.units.updateSelected = function() {
+          if(idx === subgraph.search.units.updateSelected.callCount++)
+            return Promise.resolve({ edge: edges[idx] });
+          return Promise.resolve(arguments[2]);
+        };
+        subgraph.search.units.updateSelected.callCount = 0;
       }
 
       it('no edges', function() {
-        best(-1);
-
-        const result = units.findEdgeToExpand(sg, []);
-
-        expect(!!result).to.equal(false);
-        expect(subgraph.search.units.updateSelected).to.have.callCount(0);
+        setupBest(-1);
+        return units.findEdgeToExpand(sg, []).then(function(result) {
+          expect(!!result).to.equal(false);
+          expect(subgraph.search.units.updateSelected.callCount).to.equal(0);
+        });
       });
 
       it('exit early (three)', function() {
-        best(0);
-
-        const result = units.findEdgeToExpand(sg, edges);
-
-        expect(!!result).to.equal(true);
-        expect(result.edge).to.equal(edges[0]);
-        expect(subgraph.search.units.updateSelected).to.have.callCount(3);
+        setupBest(0);
+        return units.findEdgeToExpand(sg, edges).then(function(result) {
+          expect(!!result).to.equal(true);
+          expect(result.edge).to.equal(edges[0]);
+          expect(subgraph.search.units.updateSelected.callCount).to.equal(3);
+        });
       });
 
       it('exit early (two)', function() {
-        best(3);
-
-        const result = units.findEdgeToExpand(sg, edges);
-
-        expect(!!result).to.equal(true);
-        expect(result.edge).to.equal(edges[3]);
-        expect(subgraph.search.units.updateSelected).to.have.callCount(5);
+        setupBest(3);
+        return units.findEdgeToExpand(sg, edges).then(function(result) {
+          expect(!!result).to.equal(true);
+          expect(result.edge).to.equal(edges[3]);
+          expect(subgraph.search.units.updateSelected.callCount).to.equal(5);
+        });
       });
 
       it('save the best for last', function() {
-        best(6);
-
-        const result = units.findEdgeToExpand(sg, edges);
-
-        expect(!!result).to.equal(true);
-        expect(result.edge).to.equal(edges[6]);
-        expect(subgraph.search.units.updateSelected).to.have.callCount(7);
+        setupBest(6);
+        return units.findEdgeToExpand(sg, edges).then(function(result) {
+          expect(!!result).to.equal(true);
+          expect(result.edge).to.equal(edges[6]);
+          expect(subgraph.search.units.updateSelected.callCount).to.equal(7);
+        });
       });
     }); // end findEdgeToExpand
 
