@@ -21,11 +21,11 @@ module.exports = exports = function search(sg) {
 
 function recursiveSearch(sg, edges) {
   // prune and validate edges that are finished
-  edges = verifyEdges(sg, edges);
+  edges = exports.units.verifyEdges(sg, edges);
   if(!edges) return [];
 
-  const selected = findEdgeToExpand(sg, edges);
-  const nextSteps = (selected ? expandEdge(sg, selected) : []);
+  const selected = exports.units.findEdgeToExpand(sg, edges);
+  const nextSteps = (selected ? exports.units.expandEdge(sg, selected) : []);
 
   // there isn't an edge to expand
   if(nextSteps.leading === 0) {
@@ -61,7 +61,7 @@ function findEdgeToExpand(sg, edges) {
     if(selected && edge.options.pref < selected.edge.options.pref)
       return selected;
 
-    selected = updateSelected(sg, edge, selected);
+    selected = exports.units.updateSelected(sg, edge, selected);
   }
 
   return selected;
@@ -86,7 +86,7 @@ function updateSelected(sg, edge, selected) {
   if(match.options.pointer && sg.hasIdea(match.data))
     return selected;
 
-  const currBranches = getBranches();
+  const currBranches = exports.units.getBranches();
 
   if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
     return {
@@ -149,7 +149,7 @@ function verifyEdges(sg, edges) {
   });
 
   // if any of the edges are invalid, then this subgraph match is invalid
-  if(!done.every(function(edge) { return verifyEdge(sg, edge); }))
+  if(!done.every(function(edge) { return exports.units.verifyEdge(sg, edge); }))
     return undefined;
 
   return edges;

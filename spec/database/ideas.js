@@ -119,11 +119,11 @@ describe('ideas', function() {
   });
 
   it('createGraph', bluebird.coroutine(function*() {
-    var verts = {
+    const verts = {
       person: {name:'person'},
       mark: {name:'mark'},
     };
-    var edges = [
+    const edges = [
       ['mark', 'type_of', 'person'],
     ];
 
