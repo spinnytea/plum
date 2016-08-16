@@ -83,10 +83,10 @@ function updateSelected(sg, edge, selected) {
   // we can't consider this edge if the target object hasn't be identified
   // FIXME all the comments in expandEdge are referencing this! we need to keep following the pointer to see if this is an edge we CAN consider
   const match = sg.getMatch(isSrc?edge.dst:edge.src);
-  if(match.options.pointer && sg.hasIdea(match.data))
+  if(match.options.pointer && !sg.hasIdea(match.data))
     return selected;
 
-  const currBranches = exports.units.getBranches();
+  const currBranches = exports.units.getBranches(sg, edge, isSrc);
 
   if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
     return {
@@ -114,7 +114,7 @@ function getBranches(sg, edge, isForward) {
         if(visited.has(idea.id)) continue;
         visited.add(idea.id);
 
-        (yield idea.link(link)).forEach(function(p) {
+        (yield idea.links(link)).forEach(function(p) {
           next.push(p);
           branches.set(p.id, p);
         });

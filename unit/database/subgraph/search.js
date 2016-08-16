@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-var expect = require('chai').use(require('sinon-chai')).expect;
+var expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
@@ -17,10 +17,10 @@ describe('subgraph', function() {
     let units = {};
     let data = {
       square: { name: 'square' },
-      rectangle: { name: 'square' },
-      rhombus: { name: 'square' },
-      parallelogram: { name: 'square' },
-      quadrilateral: { name: 'square' },
+      rectangle: { name: 'rectangle' },
+      rhombus: { name: 'rhombus' },
+      parallelogram: { name: 'parallelogram' },
+      quadrilateral: { name: 'quadrilateral' },
     };
     let sg;
     let sg_keys = {};
@@ -46,8 +46,8 @@ describe('subgraph', function() {
       });
 
       sg = new subgraph.units.Subgraph();
-      sg_keys.q = sg.addVertex(subgraph.matcher.id, data.quadrilateral);
-      sg_keys.p = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.q = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.p = sg.addVertex(subgraph.matcher.id, data.parallelogram);
       sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
       sg_keys.h = sg.addVertex(subgraph.matcher.filler);
       sg_keys.s = sg.addVertex(subgraph.matcher.filler);
@@ -108,11 +108,40 @@ describe('subgraph', function() {
     }); // end findEdgeToExpand
 
     describe('updateSelected', function() {
-      it.skip('test it');
+      it.skip('pick the edge with fewer branches');
+
+      it.skip('pick the edge with the higher pref');
+
+      it.skip('dont pick a lower pref');
+
+      it.skip('ignore edges without src or dst');
+
+      it.skip('ignore edges with src or dst');
+
+      it.skip('ignore pointers that whos dst is undefined');
     }); // end updateSelected
 
     describe('getBranches', function() {
-      it.skip('test it');
+      it('transitive isForward', function() {
+        return units.getBranches(sg, sg.getEdge(sg_keys.r_p), true).then(function(branches) {
+          expect(branches.length).to.equal(2);
+          expect(branches).to.include(data.quadrilateral);
+          expect(branches).to.include(data.parallelogram);
+        });
+      });
+
+      it('transitive !isForward', function() {
+        return units.getBranches(sg, sg.getEdge(sg_keys.r_p), false).then(function(branches) {
+          expect(branches.length).to.equal(3);
+          expect(branches).to.include(data.rectangle);
+          expect(branches).to.include(data.square);
+          expect(branches).to.include(data.rhombus);
+        });
+      });
+
+      it.skip('!transitive isForward');
+
+      it.skip('!transitive !isForward');
     }); // end getBranches
 
     describe('verifyEdges', function() {
