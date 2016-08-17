@@ -75,6 +75,10 @@ gulp.task('testd', [], function() {
   gulp.watch(files, ['test']);
   gulp.start('test');
 });
+gulp.task('testcd', [], function() {
+  gulp.watch(files, ['coverage']);
+  gulp.start('coverage');
+});
 
 gulp.task('coverage-unit', ['lint'], function (cb) {
   gulp.src(source)

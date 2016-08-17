@@ -2,6 +2,7 @@
 const _ = require('lodash');
 const bluebird = require('bluebird');
 const subgraph = require('../subgraph');
+// TODO review file after testing is done
 
 // find a list of subgraphs in the database that matches the supplied subgraph
 //
@@ -29,7 +30,7 @@ function recursiveSearch(sg, edges) {
     const nextSteps = (selected ? yield exports.units.expandEdge(sg, selected) : []);
 
     // there isn't an edge to expand
-    if(nextSteps.leading === 0) {
+    if(nextSteps.length === 0) {
       // check all vertices to ensure they all have ideas defined
       if(sg._vertexCount !== sg._idea.size || edges.length)
         return [];
@@ -38,13 +39,16 @@ function recursiveSearch(sg, edges) {
       return [sg];
     } else {
       // do the next iteration of searches
-      // FIXME you can't can pass bluebird.coroutine into the reduce directly
-      return nextSteps.reduce(bluebird.coroutine(function*(ret, sg) {
-        Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));
+      let ret = [];
+      edges = _.remove(edges, selected.edge);
+      return bluebird.coroutine(function*() {
+        for(let sg of nextSteps) {
+          Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));
+        }
         return ret;
-      }, []));
+      })();
     }
-  });
+  })();
 }
 
 Object.defineProperty(exports, 'units', { value: {} });
@@ -106,7 +110,7 @@ function verifyEdge(sg, edge) {
         visited.add(idea.id);
 
         // XXX reformat/refactor this so it looks cleaner
-        if((yield idea.link(link)).some(function(p) {
+        if((yield idea.links(link)).some(function(p) {
             if(p.id === targetId) return true;
             next.push(p);
             return false;
@@ -206,7 +210,7 @@ function getBranches(sg, edge, isForward) {
 }
 
 function expandEdge(sg, selected) {
-  bluebird.coroutine(function*() {
+  return bluebird.coroutine(function*() {
     const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
     let match = sg.getMatch(target_vertex_id);
     let matchData = match.data;
@@ -224,13 +228,23 @@ function expandEdge(sg, selected) {
     }
 
     // filter all the branches that match
-    // FIXME you can't can pass bluebird.coroutine into the filter directly
-    let matchedBranches = yield selected.branches.filter(bluebird.coroutine(function*(idea) {
+    // but the hard case gets the data, which requires a promise
+    // - so we need to map all the results as a promise so we can wait for them all to resolve
+    // - onse that's done, we can perform the filter
+    // - the map return either the idea or undefined, so we can filter on the identity
+    let matchedBranches = (yield Promise.all(selected.branches.map(function(idea) {
+      let p;
       if(match.matcher === subgraph.matcher.id)
-        return match.matcher(idea, matchData);
+        p = Promise.resolve(match.matcher(idea, matchData));
+      else if(match.matcher === subgraph.matcher.filler)
+        p = Promise.resolve(true);
       else
-        return match.matcher(yield idea.data(), matchData);
-    }));
+        p = idea.data().then((d)=>match.matcher(d, matchData));
+      return p.then(function(bool) {
+        if(bool) return idea;
+        return undefined;
+      });
+    }))).filter(_.identity);
 
     // build the results
     if(matchedBranches.length === 0) {
@@ -247,5 +261,5 @@ function expandEdge(sg, selected) {
         return s;
       });
     }
-  });
+  })();
 }

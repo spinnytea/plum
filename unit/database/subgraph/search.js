@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-var expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
+const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
@@ -50,11 +50,11 @@ describe('subgraph', function() {
       });
 
       sg = new subgraph.units.Subgraph();
-      sg_keys.q = sg.addVertex(subgraph.matcher.filler);
-      sg_keys.p = sg.addVertex(subgraph.matcher.id, data.parallelogram);
-      sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
-      sg_keys.h = sg.addVertex(subgraph.matcher.filler);
       sg_keys.s = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.h = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
+      sg_keys.p = sg.addVertex(subgraph.matcher.id, data.parallelogram);
+      sg_keys.q = sg.addVertex(subgraph.matcher.filler);
       sg_keys.s_r = sg.addEdge(sg_keys.s, links.get('type_of'), sg_keys.r);
       sg_keys.s_h = sg.addEdge(sg_keys.s, links.get('type_of'), sg_keys.h);
       sg_keys.r_p = sg.addEdge(sg_keys.r, links.get('type_of'), sg_keys.p);
@@ -85,7 +85,15 @@ describe('subgraph', function() {
     }); // end search
 
     describe('recursiveSearch', function() {
-      it.skip('test it');
+      it.skip('no edge selected');
+
+      it.skip('contains invalid edge'); // e.g. src & dst specified, but values don't match
+
+      it.skip('one edge');
+
+      it.skip('two edges');
+
+      it.skip('multiple matches');
     }); // end recursiveSearch
 
     describe('verifyEdges', function() {
