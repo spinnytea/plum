@@ -16,7 +16,7 @@ module.exports = exports = function search(sg) {
   // sort high[0,1,...] to low[...,11,12]
   let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
 
-  return recursiveSearch(sg, edges);
+  return exports.units.recursiveSearch(sg, edges);
 };
 
 function recursiveSearch(sg, edges) {
@@ -40,7 +40,7 @@ function recursiveSearch(sg, edges) {
       // do the next iteration of searches
       // FIXME you can't can pass bluebird.coroutine into the reduce directly
       return nextSteps.reduce(bluebird.coroutine(function*(ret, sg) {
-        Array.prototype.push.apply(ret, yield recursiveSearch(sg, edges));
+        Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));
         return ret;
       }, []));
     }
@@ -48,93 +48,13 @@ function recursiveSearch(sg, edges) {
 }
 
 Object.defineProperty(exports, 'units', { value: {} });
+exports.units.recursiveSearch = recursiveSearch;
+exports.units.verifyEdges = verifyEdges;
+exports.units.verifyEdge = verifyEdge;
 exports.units.findEdgeToExpand = findEdgeToExpand;
 exports.units.updateSelected = updateSelected;
 exports.units.getBranches = getBranches;
-exports.units.verifyEdges = verifyEdges;
-exports.units.verifyEdge = verifyEdge;
 exports.units.expandEdge = expandEdge;
-
-// find an edge what's partially on the graph, and partially off the graph
-function findEdgeToExpand(sg, edges) {
-  return bluebird.coroutine(function*() {
-    let selected = null;
-
-    for(let edge of edges) {
-      // since the edges are sorted by pref, we can exit early
-      if(selected && edge.options.pref < selected.edge.options.pref)
-        return selected;
-
-      selected = yield exports.units.updateSelected(sg, edge, selected);
-    }
-
-    return selected;
-  })();
-}
-
-// find an edge what's partially on the graph, and partially off the graph
-function updateSelected(sg, edge, selected) {
-  // if we've already pick an edge with a higher pref, then we don't need to consider this edge
-  if(selected && selected.edge.options.pref > edge.options.pref)
-    return Promise.resolve(selected);
-
-  const isSrc = sg.hasIdea(edge.src);
-  const isDst = sg.hasIdea(edge.dst);
-  // if they are both true or both false, then we shouldn't consider this edge
-  // (side note: they shouldn't be in the list anymore if they are both true)
-  // we only want to select this edge if one is specified and the other is not
-  if(isSrc === isDst) return Promise.resolve(selected);
-
-  // we can't consider this edge if the target object hasn't be identified
-  // FIXME all the comments in expandEdge are referencing this! we need to keep following the pointer to see if this is an edge we CAN consider
-  const match = sg.getMatch(isSrc?edge.dst:edge.src);
-  if(match.options.pointer && !sg.hasIdea(match.data))
-    return Promise.resolve(selected);
-
-  return exports.units.getBranches(sg, edge, isSrc).then(function(currBranches) {
-    if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
-      return {
-        edge: edge,
-        branches: currBranches,
-        isForward: isSrc,
-      };
-    }
-
-    return selected;
-  });
-}
-
-function getBranches(sg, edge, isForward) {
-  return bluebird.coroutine(function*() {
-    if(edge.options.transitive || edge.link.options.transitive) {
-      // collect all vertices along the link
-      const next = [sg.getIdea(isForward?edge.src:edge.dst)]; // a list of all the places to visit; using push and pop for speed; traversal order doesn't matter
-      const link = (isForward?edge.link:edge.link.opposite); // the link to follow
-      const visited = new Set(); // an index of all the places we've been
-      const branches = new Map(); // the return list of everything we've found (indexed to de-dup, return the values)
-
-      let idea;
-      while(next.length) {
-        idea = next.pop();
-        if(visited.has(idea.id)) continue;
-        visited.add(idea.id);
-
-        (yield idea.links(link)).forEach(function(p) {
-          next.push(p);
-          branches.set(p.id, p);
-        });
-      }
-
-      return Array.from(branches.values());
-    } else {
-      // follow the link and get the ideas
-      if(isForward)
-        return yield sg.getIdea(edge.src).link(edge.link);
-      else
-        return yield sg.getIdea(edge.dst).link(edge.link.opposite);
-    }
-  })();
-}
 
 // 1) make a copy of edges (we don't want to prune the original)
 // 2) collect the edges that have src and dst, since we don't need to consider them
@@ -187,10 +107,10 @@ function verifyEdge(sg, edge) {
 
         // XXX reformat/refactor this so it looks cleaner
         if((yield idea.link(link)).some(function(p) {
-          if(p.id === targetId) return true;
-          next.push(p);
-          return false;
-        })) return true;
+            if(p.id === targetId) return true;
+            next.push(p);
+            return false;
+          })) return true;
       }
 
       return false;
@@ -202,13 +122,95 @@ function verifyEdge(sg, edge) {
   })();
 }
 
+// find an edge what's partially on the graph, and partially off the graph
+function findEdgeToExpand(sg, edges) {
+  return bluebird.coroutine(function*() {
+    let selected = null;
+
+    for(let edge of edges) {
+      // since the edges are sorted by pref, we can exit early
+      if(selected && edge.options.pref < selected.edge.options.pref)
+        return selected;
+
+      selected = yield exports.units.updateSelected(sg, edge, selected);
+    }
+
+    return selected;
+  })();
+}
+
+// checks edge against select to see if it's a better match
+// one side must be attached to the graph, one edge must be unknown
+// picks the one with the lower pref; or if the same pref, picks the one with the lower branch factor
+function updateSelected(sg, edge, selected) {
+  // if we've already pick an edge with a higher pref, then we don't need to consider this edge
+  if(selected && selected.edge.options.pref > edge.options.pref)
+    return Promise.resolve(selected);
+
+  const isSrc = sg.hasIdea(edge.src);
+  const isDst = sg.hasIdea(edge.dst);
+  // if they are both true or both false, then we shouldn't consider this edge
+  // (side note: they shouldn't be in the list anymore if they are both true)
+  // we only want to select this edge if one is specified and the other is not
+  if(isSrc === isDst) return Promise.resolve(selected);
+
+  // we can't consider this edge if the target object hasn't be identified
+  // FIXME expandEdge does a deeper traversal of the matches, so should this
+  const match = sg.getMatch(isSrc?edge.dst:edge.src);
+  if(match.options.pointer && !sg.hasIdea(match.data))
+    return Promise.resolve(selected);
+
+  return exports.units.getBranches(sg, edge, isSrc).then(function(currBranches) {
+    if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
+      return {
+        edge: edge,
+        branches: currBranches,
+        isForward: isSrc,
+      };
+    }
+
+    return selected;
+  });
+}
+
+function getBranches(sg, edge, isForward) {
+  return bluebird.coroutine(function*() {
+    if(edge.options.transitive || edge.link.options.transitive) {
+      // collect all vertices along the link
+      const next = [sg.getIdea(isForward?edge.src:edge.dst)]; // a list of all the places to visit; using push and pop for speed; traversal order doesn't matter
+      const link = (isForward?edge.link:edge.link.opposite); // the link to follow
+      const visited = new Set(); // an index of all the places we've been
+      const branches = new Map(); // the return list of everything we've found (indexed to de-dup, return the values)
+
+      let idea;
+      while(next.length) {
+        idea = next.pop();
+        if(visited.has(idea.id)) continue;
+        visited.add(idea.id);
+
+        (yield idea.links(link)).forEach(function(p) {
+          next.push(p);
+          branches.set(p.id, p);
+        });
+      }
+
+      return Array.from(branches.values());
+    } else {
+      // follow the link and get the ideas
+      if(isForward)
+        return yield sg.getIdea(edge.src).link(edge.link);
+      else
+        return yield sg.getIdea(edge.dst).link(edge.link.opposite);
+    }
+  })();
+}
+
 function expandEdge(sg, selected) {
   bluebird.coroutine(function*() {
     const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
     let match = sg.getMatch(target_vertex_id);
     let matchData = match.data;
 
-    // XXX what if the pointer vertex hasn't been resolved yet? should this be considered when choosing an edge to expand?
     // following the pointer requires a more complex pre match thing
     // if this points to a pointer, we need to follow that as well
     if(match.options.pointer) {

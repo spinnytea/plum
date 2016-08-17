@@ -6,11 +6,15 @@ const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
 const subgraph = require('../../../src/database/subgraph');
 
+function makeEdges(prefs) {
+  return prefs.map(function(pref) { return { options: { pref: pref } }; });
+}
+
 /**
  * square - rectangle - parallelogram - quadrilateral
  *         \ rhombus /
  *
- * even though we set up this subgraph, most of the time we shouldn't se it directly
+ * even though we set up this subgraph, some of the tests don't actually use it
  */
 describe('subgraph', function() {
   describe('search', function() {
@@ -58,10 +62,42 @@ describe('subgraph', function() {
       sg_keys.p_q = sg.addEdge(sg_keys.p, links.get('type_of'), sg_keys.q);
     });
 
-    it.skip('edge order');
+    describe('search', function() {
+      it('noop concrete', function() {
+        const sg = { concrete: true };
+        return subgraph.search(sg).then(function(result) {
+          expect(result).to.deep.equal([sg]);
+          expect(result[0]).to.equal(sg);
+        });
+      });
+
+      it('edge order', function() {
+        const edges = makeEdges([1,0,2,0,3,0,4]);
+        const sg = { allEdges: function() { return edges; } };
+
+        subgraph.search(sg);
+
+        const stub = subgraph.search.units.recursiveSearch;
+        expect(stub).to.have.callCount(1);
+        expect(stub.firstCall.args[0]).to.equal(sg);
+        expect(stub.firstCall.args[1]).to.deep.equal(makeEdges([4,3,2,1,0,0,0]));
+      });
+    }); // end search
+
+    describe('recursiveSearch', function() {
+      it.skip('test it');
+    }); // end recursiveSearch
+
+    describe('verifyEdges', function() {
+      it.skip('test it');
+    }); // end verifyEdges
+
+    describe('verifyEdge', function() {
+      it.skip('test it');
+    }); // end verifyEdge
 
     describe('findEdgeToExpand', function() {
-      const edges = [3, 3, 3, 2, 2, 1, 0].map(function(pref) { return { options: { pref: pref } }; });
+      const edges = makeEdges([3, 3, 3, 2, 2, 1, 0]);
       function setupBest(idx) {
         subgraph.search.units.updateSelected = function() {
           if(idx === subgraph.search.units.updateSelected.callCount++)
@@ -143,14 +179,6 @@ describe('subgraph', function() {
 
       it.skip('!transitive !isForward');
     }); // end getBranches
-
-    describe('verifyEdges', function() {
-      it.skip('test it');
-    }); // end verifyEdges
-
-    describe('verifyEdge', function() {
-      it.skip('test it');
-    }); // end verifyEdge
 
     describe('expandEdge', function() {
       it.skip('test it');
