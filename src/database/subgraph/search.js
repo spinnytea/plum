@@ -17,13 +17,13 @@ module.exports = exports = function search(sg) {
   // sort high[0,1,...] to low[...,11,12]
   let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
 
-  return exports.units.recursiveSearch(sg, edges);
+  return exports.units.recursiveSearch(sg.copy(), edges);
 };
 
 function recursiveSearch(sg, edges) {
   return bluebird.coroutine(function*() {
     // prune and validate edges that are finished
-    edges = exports.units.verifyEdges(sg, edges);
+    edges = yield exports.units.verifyEdges(sg, edges);
     if(!edges) return [];
 
     const selected = yield exports.units.findEdgeToExpand(sg, edges);
@@ -40,7 +40,7 @@ function recursiveSearch(sg, edges) {
     } else {
       // do the next iteration of searches
       let ret = [];
-      edges = _.remove(edges, selected.edge);
+      _.remove(edges, selected.edge);
       return bluebird.coroutine(function*() {
         for(let sg of nextSteps) {
           Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));
@@ -78,10 +78,11 @@ function verifyEdges(sg, edges) {
   });
 
   // if any of the edges are invalid, then this subgraph match is invalid
-  if(!done.every(function(edge) { return exports.units.verifyEdge(sg, edge); }))
+  return Promise.all(done.map((edge)=>exports.units.verifyEdge(sg, edge))).then(function(done) {
+    if(done.every(_.identity))
+      return edges;
     return undefined;
-
-  return edges;
+  });
 }
 
 // specifically for when src and dst have ideas

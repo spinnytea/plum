@@ -73,14 +73,13 @@ describe('subgraph', function() {
 
       it('edge order', function() {
         const edges = makeEdges([1,0,2,0,3,0,4]);
-        const sg = { allEdges: function() { return edges; } };
+        const sg = { allEdges: ()=>(edges), copy: ()=>('copy') };
 
         subgraph.search(sg);
 
         const stub = subgraph.search.units.recursiveSearch;
         expect(stub).to.have.callCount(1);
-        expect(stub.firstCall.args[0]).to.equal(sg);
-        expect(stub.firstCall.args[1]).to.deep.equal(makeEdges([4,3,2,1,0,0,0]));
+        expect(stub.firstCall.args).to.deep.equal(['copy', makeEdges([4,3,2,1,0,0,0])]);
       });
     }); // end search
 
