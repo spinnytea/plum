@@ -40,7 +40,7 @@ function recursiveSearch(sg, edges) {
     } else {
       // do the next iteration of searches
       let ret = [];
-      _.remove(edges, selected.edge);
+      edges = _.pull(edges, selected.edge);
       return bluebird.coroutine(function*() {
         for(let sg of nextSteps) {
           Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));

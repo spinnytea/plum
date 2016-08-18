@@ -97,15 +97,82 @@ describe('subgraph', function() {
     }); // end search
 
     describe('recursiveSearch', function() {
-      it.skip('no edge selected');
+      it('invalid edges', function() {
+        subgraph.search.units.verifyEdges.returns(Promise.resolve(undefined));
 
-      it.skip('contains invalid edge'); // e.g. src & dst specified, but values don't match
+        return units.recursiveSearch().then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.search.units.verifyEdges).to.have.callCount(1);
+          expect(subgraph.search.units.findEdgeToExpand).to.have.callCount(0);
+          expect(subgraph.search.units.expandEdge).to.have.callCount(0);
+          expect(subgraph.search.units.recursiveSearch).to.have.callCount(0);
+        });
+      });
 
-      it.skip('one edge');
+      it('no edge selected', function() {
+        const edges = ['a','b'];
+        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve(undefined));
 
-      it.skip('two edges');
+        return units.recursiveSearch(sg, edges).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.search.units.verifyEdges).to.have.callCount(1);
+          expect(subgraph.search.units.findEdgeToExpand).to.have.callCount(1);
+          expect(subgraph.search.units.expandEdge).to.have.callCount(0);
+          expect(subgraph.search.units.recursiveSearch).to.have.callCount(0);
+        });
+      });
 
-      it.skip('multiple matches');
+      it('no next steps', function() {
+        const edges = ['a','b'];
+        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Promise.resolve([]));
+
+        return units.recursiveSearch(sg, edges).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.search.units.verifyEdges).to.have.callCount(1);
+          expect(subgraph.search.units.findEdgeToExpand).to.have.callCount(1);
+          expect(subgraph.search.units.expandEdge).to.have.callCount(1);
+          expect(subgraph.search.units.recursiveSearch).to.have.callCount(0);
+        });
+      });
+
+      it('has next steps', function() {
+        const edges = ['a','b'];
+        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Promise.resolve([1,2,3]));
+        subgraph.search.units.recursiveSearch.returns(Promise.resolve(['recursive result']));
+
+        return units.recursiveSearch(sg, edges).then(function(result) {
+          expect(result).to.deep.equal(['recursive result', 'recursive result', 'recursive result']);
+          expect(subgraph.search.units.verifyEdges).to.have.callCount(1);
+          expect(subgraph.search.units.findEdgeToExpand).to.have.callCount(1);
+          expect(subgraph.search.units.expandEdge).to.have.callCount(1);
+          expect(subgraph.search.units.recursiveSearch).to.have.callCount(3);
+          expect(subgraph.search.units.recursiveSearch).to.have.been.calledWithExactly(1, ['b']);
+          expect(subgraph.search.units.recursiveSearch).to.have.been.calledWithExactly(2, ['b']);
+          expect(subgraph.search.units.recursiveSearch).to.have.been.calledWithExactly(3, ['b']);
+        });
+      });
+
+      it('base case', function() {
+        const edges = []; // no more edges left
+        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Promise.resolve([]));
+        sg._vertexCount = sg._idea.size; // pretend we found them all
+
+        return units.recursiveSearch(sg, edges).then(function(result) {
+          expect(result).to.deep.equal([sg]);
+          expect(sg.concrete).to.equal(true);
+          expect(subgraph.search.units.verifyEdges).to.have.callCount(1);
+          expect(subgraph.search.units.findEdgeToExpand).to.have.callCount(1);
+          expect(subgraph.search.units.expandEdge).to.have.callCount(1);
+          expect(subgraph.search.units.recursiveSearch).to.have.callCount(0);
+        });
+      });
     }); // end recursiveSearch
 
     describe('verifyEdges', function() {
