@@ -26,7 +26,7 @@ describe('subgraph', function() {
       parallelogram: { name: 'parallelogram' },
       quadrilateral: { name: 'quadrilateral' },
     };
-    let sg;
+    let sg; // TODO can I remove this? which unit tests really need it? that's what the spec is for
     let sg_keys = {};
     before(function() {
       _.assign(units, subgraph.search.units);
@@ -96,7 +96,42 @@ describe('subgraph', function() {
     }); // end recursiveSearch
 
     describe('verifyEdges', function() {
-      it.skip('test it');
+      const sg = {
+        hasIdea: function(id) { return id < 4; }
+      };
+      const edges = [
+        { src: 1, dst: 2 },
+        { src: 1, dst: 3 },
+        { src: 2, dst: 3 },
+        { src: 3, dst: 4 },
+        { src: 4, dst: 5 },
+        { src: 3, dst: 5 },
+      ];
+
+      it('all valid', function() {
+        subgraph.search.units.verifyEdge.returns(Promise.resolve(true));
+
+        return units.verifyEdges(sg, edges).then(function(result) {
+          expect(edges.length).to.equal(6);
+          expect(result.length).to.equal(3);
+          expect(subgraph.search.units.verifyEdge).to.have.callCount(3);
+          expect(subgraph.search.units.verifyEdge).to.have.been.calledWithExactly(sg, edges[0]);
+          expect(subgraph.search.units.verifyEdge).to.have.been.calledWithExactly(sg, edges[1]);
+          expect(subgraph.search.units.verifyEdge).to.have.been.calledWithExactly(sg, edges[2]);
+          expect(subgraph.search.units.verifyEdge).to.not.have.been.calledWithExactly(sg, edges[3]);
+          expect(subgraph.search.units.verifyEdge).to.not.have.been.calledWithExactly(sg, edges[4]);
+          expect(subgraph.search.units.verifyEdge).to.not.have.been.calledWithExactly(sg, edges[5]);
+        });
+      });
+
+      it('some invalid', function() {
+        subgraph.search.units.verifyEdge.returns(Promise.resolve(false));
+        return units.verifyEdges(sg, edges).then(function(result) {
+          expect(edges.length).to.equal(6);
+          expect(result).to.equal(undefined);
+          expect(subgraph.search.units.verifyEdge).to.have.callCount(3);
+        });
+      });
     }); // end verifyEdges
 
     describe('verifyEdge', function() {
