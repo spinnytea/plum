@@ -203,9 +203,9 @@ function getBranches(sg, edge, isForward) {
     } else {
       // follow the link and get the ideas
       if(isForward)
-        return yield sg.getIdea(edge.src).link(edge.link);
+        return yield sg.getIdea(edge.src).links(edge.link);
       else
-        return yield sg.getIdea(edge.dst).link(edge.link.opposite);
+        return yield sg.getIdea(edge.dst).links(edge.link.opposite);
     }
   })();
 }

@@ -11,8 +11,13 @@ function makeEdges(prefs) {
 }
 
 /**
+ * type_of
  * square - rectangle - parallelogram - quadrilateral
  *         \ rhombus /
+ *
+ * property
+ * rectangle - height
+ *            \ width
  *
  * even though we set up this subgraph, some of the tests don't actually use it
  */
@@ -25,8 +30,10 @@ describe('subgraph', function() {
       rhombus: { name: 'rhombus' },
       parallelogram: { name: 'parallelogram' },
       quadrilateral: { name: 'quadrilateral' },
+      width: { name: 'width' },
+      height: { name: 'height' },
     };
-    let sg; // TODO can I remove this? which unit tests really need it? that's what the spec is for
+    let sg;
     let sg_keys = {};
     before(function() {
       _.assign(units, subgraph.search.units);
@@ -36,6 +43,8 @@ describe('subgraph', function() {
         ['rectangle', 'type_of', 'parallelogram'],
         ['rhombus', 'type_of', 'parallelogram'],
         ['parallelogram', 'type_of', 'quadrilateral'],
+        ['rectangle', 'property', 'width'],
+        ['rectangle', 'property', 'height'],
       ]);
     });
     after(function() {
@@ -55,11 +64,15 @@ describe('subgraph', function() {
       sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
       sg_keys.p = sg.addVertex(subgraph.matcher.id, data.parallelogram);
       sg_keys.q = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.wi = sg.addVertex(subgraph.matcher.id, data.width);
+      sg_keys.hi = sg.addVertex(subgraph.matcher.filler);
       sg_keys.s_r = sg.addEdge(sg_keys.s, links.get('type_of'), sg_keys.r);
       sg_keys.s_h = sg.addEdge(sg_keys.s, links.get('type_of'), sg_keys.h);
       sg_keys.r_p = sg.addEdge(sg_keys.r, links.get('type_of'), sg_keys.p);
       sg_keys.h_p = sg.addEdge(sg_keys.h, links.get('type_of'), sg_keys.p);
       sg_keys.p_q = sg.addEdge(sg_keys.p, links.get('type_of'), sg_keys.q);
+      sg_keys.r_wi = sg.addEdge(sg_keys.r, links.get('property'), sg_keys.wi);
+      sg_keys.r_hi = sg.addEdge(sg_keys.r, links.get('property'), sg_keys.hi);
     });
 
     describe('search', function() {
@@ -217,9 +230,20 @@ describe('subgraph', function() {
         });
       });
 
-      it.skip('!transitive isForward');
+      it('!transitive isForward', function() {
+        return units.getBranches(sg, sg.getEdge(sg_keys.r_wi), true).then(function(branches) {
+          expect(branches.length).to.equal(2);
+          expect(branches).to.include(data.width);
+          expect(branches).to.include(data.height);
+        });
+      });
 
-      it.skip('!transitive !isForward');
+      it('!transitive !isForward', function() {
+        return units.getBranches(sg, sg.getEdge(sg_keys.r_wi), false).then(function(branches) {
+          expect(branches.length).to.equal(1);
+          expect(branches).to.include(data.rectangle);
+        });
+      });
     }); // end getBranches
 
     describe('expandEdge', function() {
