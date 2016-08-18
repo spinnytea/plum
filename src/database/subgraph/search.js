@@ -160,7 +160,7 @@ function updateSelected(sg, edge, selected) {
   if(isSrc === isDst) return Promise.resolve(selected);
 
   // we can't consider this edge if the target object hasn't be identified
-  // FIXME expandEdge does a deeper traversal of the matches, so should this
+  // Note: don't keep following pointers; this matcher is based on the contents of the target idea
   const match = sg.getMatch(isSrc?edge.dst:edge.src);
   if(match.options.pointer && !sg.hasIdea(match.data))
     return Promise.resolve(selected);
@@ -217,35 +217,32 @@ function expandEdge(sg, selected) {
     let matchData = match.data;
 
     // following the pointer requires a more complex pre match thing
-    // if this points to a pointer, we need to follow that as well
-    if(match.options.pointer) {
-      // XXX stop early if there is data defined? will there ever be data defined?
-      let m = sg.getMatch(matchData);
-      while(m.options.pointer) {
-        matchData = m.data;
-        m = sg.getMatch(matchData);
-      }
+    // Note: don't keep following pointers; this matcher is based on the contents of the target idea
+    if(match.options.pointer && match.matcher !== subgraph.matcher.filler) {
       matchData = yield sg.getData(matchData);
     }
 
-    // filter all the branches that match
-    // but the hard case gets the data, which requires a promise
-    // - so we need to map all the results as a promise so we can wait for them all to resolve
-    // - onse that's done, we can perform the filter
-    // - the map return either the idea or undefined, so we can filter on the identity
-    let matchedBranches = (yield Promise.all(selected.branches.map(function(idea) {
-      let p;
-      if(match.matcher === subgraph.matcher.id)
-        p = Promise.resolve(match.matcher(idea, matchData));
-      else if(match.matcher === subgraph.matcher.filler)
-        p = Promise.resolve(true);
-      else
-        p = idea.data().then((d)=>match.matcher(d, matchData));
-      return p.then(function(bool) {
-        if(bool) return idea;
-        return undefined;
-      });
-    }))).filter(_.identity);
+    let matchedBranches;
+    switch(match.matcher) {
+      // filter matches all branches
+      case subgraph.matcher.filler:
+        matchedBranches = selected.branches;
+        break;
+      // id needs a matcher, but doesn't need a promise
+      case subgraph.matcher.id:
+        matchedBranches = selected.branches.filter((idea)=>match.matcher(idea, matchData));
+        break;
+
+      // the hard case gets the data, which requires a promise
+      // - so we need to map all the results as a promise so we can wait for them all to resolve
+      // - once that's done, we can perform the filter
+      // - the map returns either the idea or undefined, so we filter on the identity
+      default:
+        matchedBranches = (yield Promise.all(selected.branches.map(function(idea) {
+          return idea.data().then((d)=>(match.matcher(d, matchData)?idea:undefined));
+        }))).filter(_.identity);
+        break;
+    }
 
     // build the results
     if(matchedBranches.length === 0) {
@@ -255,9 +252,10 @@ function expandEdge(sg, selected) {
       sg._idea.set(target_vertex_id, matchedBranches[0]);
       return [sg];
     } else {
-      // we need to branch; create a new subgraph instance for each level
-      return matchedBranches.map(function(idea) {
-        let s = sg.copy();
+      // we need to branch; create a new subgraph instance for each match
+      // sans the last one, because we don't need to
+      return matchedBranches.map(function(idea, idx) {
+        let s = (idx===matchedBranches.length-1?sg:sg.copy());
         s._idea.set(target_vertex_id, idea);
         return s;
       });

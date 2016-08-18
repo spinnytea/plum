@@ -1,5 +1,6 @@
 'use strict';
 const _ = require('lodash');
+const bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const ideas = require('../../../src/database/ideas');
@@ -59,7 +60,7 @@ describe('subgraph', function() {
       });
 
       sg = new subgraph.units.Subgraph();
-      sg_keys.s = sg.addVertex(subgraph.matcher.filler);
+      sg_keys.s = sg.addVertex(subgraph.matcher.exact, {name:'square'});
       sg_keys.h = sg.addVertex(subgraph.matcher.filler);
       sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
       sg_keys.p = sg.addVertex(subgraph.matcher.id, data.parallelogram);
@@ -396,7 +397,48 @@ describe('subgraph', function() {
     }); // end getBranches
 
     describe('expandEdge', function() {
-      it.skip('test it');
+      it.skip('pointer uses target idea data');
+
+      it.skip('id does not actually need the data');
+
+      it('filler does not actually need the data or the matcher', bluebird.coroutine(function*() {
+        subgraph.search.units.getBranches = units.getBranches;
+        let selected = yield units.updateSelected(sg, sg.getEdge(sg_keys.p_q), undefined);
+        sinon.stub(selected.branches, 'map');
+        sinon.stub(sg, 'getData');
+        expect(selected.isForward).to.equal(true);
+        expect(sg.getMatch(selected.edge.dst).matcher.name).to.equal('filler');
+
+        let branches = yield units.expandEdge(sg, selected);
+
+        expect(branches.length).to.equal(1);
+        expect(selected.branches.map).to.have.callCount(0);
+        expect(sg.getData).to.have.callCount(0);
+      }));
+
+      it.skip('check something that needs to match against data');
+
+      it.skip('no branches');
+
+      it.skip('one expansion'); // change subgraph directly
+
+      it('multiple expansions', bluebird.coroutine(function*() {
+        subgraph.search.units.getBranches = units.getBranches;
+        let selected = yield units.updateSelected(sg, sg.getEdge(sg_keys.h_p), undefined);
+        let branches = yield units.expandEdge(sg, selected);
+
+        // copy the subgraph
+        // let the last one carry through
+        expect(branches.length).to.equal(3);
+        expect(branches[0]).to.not.equal(sg);
+        expect(branches[1]).to.not.equal(sg);
+        expect(branches[2]).to.equal(sg);
+
+        let matchedIdeas = branches.map((s)=>s.getIdea(sg_keys.h));
+        expect(matchedIdeas).to.include(data.square);
+        expect(matchedIdeas).to.include(data.rectangle);
+        expect(matchedIdeas).to.include(data.rhombus);
+      }));
     }); // end expandEdge
   }); // end search
 }); // end subgraph
