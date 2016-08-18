@@ -304,15 +304,59 @@ describe('subgraph', function() {
     }); // end findEdgeToExpand
 
     describe('updateSelected', function() {
-      it.skip('pick the edge with fewer branches');
+      function select(branches, pref) {
+        return {
+          edge: { src: 0, dst: 0, options: { pref: pref } },
+          branches: new Array(branches).fill(null),
+          isForward: true,
+        };
+      }
+      beforeEach(function() {
+        // call through
+        subgraph.search.units.getBranches = units.getBranches;
+      });
 
-      it.skip('pick the edge with the higher pref');
+      it('pick the edge with fewer branches', function() {
+        // if we have something selected that has a high branching factor, then switch
+        let selected = select(100, 0);
+        return units.updateSelected(sg, sg.getEdge(sg_keys.s_r), selected).then(function(result) {
+          expect(result.edge).to.equal(sg.getEdge(sg_keys.s_r));
 
-      it.skip('dont pick a lower pref');
+          // if we start with something of equal or lower, then keep what we have
+          selected = select(1, 0);
+          return units.updateSelected(sg, sg.getEdge(sg_keys.s_r), selected);
+        }).then(function(result) {
+          expect(result).to.equal(selected);
+        });
+      });
 
-      it.skip('ignore edges without src or dst');
+      it('pick the edge with the higher pref', function() {
+        // it doesn't matter what the branching factor is if we've said we should expand this one first
+        let selected = select(100, 10);
+        return units.updateSelected(sg, sg.getEdge(sg_keys.p_q), selected).then(function(result) {
+          expect(result).to.equal(selected);
 
-      it.skip('ignore edges with src or dst');
+          // switch to a different edge if it's got a better pref
+          selected = select(1, -1);
+          return units.updateSelected(sg, sg.getEdge(sg_keys.p_q), selected);
+        }).then(function(result) {
+          expect(result.edge).to.equal(sg.getEdge(sg_keys.p_q));
+        });
+      });
+
+      it('ignore edges without src or dst', function() {
+        let selected = select(100, -1);
+        return units.updateSelected(sg, sg.getEdge(sg_keys.s_h), selected).then(function(result) {
+          expect(result).to.equal(selected);
+        });
+      });
+
+      it('ignore edges with src or dst', function() {
+        let selected = select(100, -1);
+        return units.updateSelected(sg, sg.getEdge(sg_keys.r_p), selected).then(function(result) {
+          expect(result).to.equal(selected);
+        });
+      });
 
       it.skip('ignore pointers that whos dst is undefined');
     }); // end updateSelected
