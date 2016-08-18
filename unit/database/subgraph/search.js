@@ -215,7 +215,45 @@ describe('subgraph', function() {
     }); // end verifyEdges
 
     describe('verifyEdge', function() {
-      it.skip('test it');
+      // Note: we only need to check edges that have both a src and a dst
+      it('short transitive valid', function() {
+        return units.verifyEdge(sg, sg.getEdge(sg_keys.r_p)).then(function(result) {
+          expect(result).to.equal(true);
+        });
+      });
+
+      it('long transitive', function() {
+        // let's set the square and rhombus
+        sg._idea.set(sg_keys.s, data.square);
+        sg._idea.set(sg_keys.h, data.quadrilateral);
+        // if we look at this specific link, it looks like the graph could be
+        return units.verifyEdge(sg, sg.getEdge(sg_keys.s_h)).then(function(result) {
+          expect(result).to.equal(true);
+
+          // now let's look at a different link
+          // this isn't a valid edge
+          return units.verifyEdge(sg, sg.getEdge(sg_keys.h_p));
+        }).then(function(result) {
+          expect(result).to.equal(false);
+        });
+      });
+
+      // make a rock/paper/scissors graph?
+      it.skip('transitive circular links');
+
+      it('!transitive valid', function() {
+        return units.verifyEdge(sg, sg.getEdge(sg_keys.r_wi)).then(function(result) {
+          expect(result).to.equal(true);
+        });
+      });
+
+      it('!transitive invalid', function() {
+        // a quadrilateral is not valid for a height
+        sg._idea.set(sg_keys.hi, data.quadrilateral);
+        return units.verifyEdge(sg, sg.getEdge(sg_keys.r_hi)).then(function(result) {
+          expect(result).to.equal(false);
+        });
+      });
     }); // end verifyEdge
 
     describe('findEdgeToExpand', function() {

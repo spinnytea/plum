@@ -120,7 +120,7 @@ function verifyEdge(sg, edge) {
 
       return false;
     } else {
-      const ideas = yield sg.getIdea(edge.src).link(edge.link);
+      const ideas = yield sg.getIdea(edge.src).links(edge.link);
       const targetId = sg.getIdea(edge.dst).id;
       return ideas.some(function(idea) { return idea.id === targetId; });
     }
