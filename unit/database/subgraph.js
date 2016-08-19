@@ -334,16 +334,16 @@ describe('subgraph', function() {
     //
 
     it('getEdge', function() {
-      let v1 = sg.addVertex(subgraph.matcher.filler);
-      let v2 = sg.addVertex(subgraph.matcher.filler);
+      const v1 = sg.addVertex(subgraph.matcher.filler);
+      const v2 = sg.addVertex(subgraph.matcher.filler);
       const link = links.get('thought_description');
       const e = sg.addEdge(v1, link, v2);
       expect(sg.getEdge(e)).to.deep.equal(sg._edges.data.get(e));
     });
 
     it('allEdges', function() {
-      let v1 = sg.addVertex(subgraph.matcher.filler);
-      let v2 = sg.addVertex(subgraph.matcher.filler);
+      const v1 = sg.addVertex(subgraph.matcher.filler);
+      const v2 = sg.addVertex(subgraph.matcher.filler);
       const link = links.get('thought_description');
       sg.addEdge(v1, link, v2);
       expect(sg).to.not.have.property('__all_edges__');

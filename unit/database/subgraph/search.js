@@ -321,13 +321,13 @@ describe('subgraph', function() {
         // if we have something selected that has a high branching factor, then switch
         let selected = select(100, 0);
         return units.updateSelected(sg, sg.getEdge(sg_keys.s_r), selected).then(function(result) {
-          expect(result.edge).to.equal(sg.getEdge(sg_keys.s_r));
+        expect(result.edge).to.equal(sg.getEdge(sg_keys.s_r));
 
           // if we start with something of equal or lower, then keep what we have
-          selected = select(1, 0);
+        selected = select(1, 0);
           return units.updateSelected(sg, sg.getEdge(sg_keys.s_r), selected);
         }).then(function(result) {
-          expect(result).to.equal(selected);
+        expect(result).to.equal(selected);
         });
       });
 
@@ -335,27 +335,27 @@ describe('subgraph', function() {
         // it doesn't matter what the branching factor is if we've said we should expand this one first
         let selected = select(100, 10);
         return units.updateSelected(sg, sg.getEdge(sg_keys.p_q), selected).then(function(result) {
-          expect(result).to.equal(selected);
+        expect(result).to.equal(selected);
 
           // switch to a different edge if it's got a better pref
-          selected = select(1, -1);
+        selected = select(1, -1);
           return units.updateSelected(sg, sg.getEdge(sg_keys.p_q), selected);
         }).then(function(result) {
-          expect(result.edge).to.equal(sg.getEdge(sg_keys.p_q));
+        expect(result.edge).to.equal(sg.getEdge(sg_keys.p_q));
         });
       });
 
       it('ignore edges without src or dst', function() {
         let selected = select(100, -1);
         return units.updateSelected(sg, sg.getEdge(sg_keys.s_h), selected).then(function(result) {
-          expect(result).to.equal(selected);
+        expect(result).to.equal(selected);
         });
       });
 
       it('ignore edges with src or dst', function() {
         let selected = select(100, -1);
         return units.updateSelected(sg, sg.getEdge(sg_keys.r_p), selected).then(function(result) {
-          expect(result).to.equal(selected);
+        expect(result).to.equal(selected);
         });
       });
 
@@ -400,7 +400,7 @@ describe('subgraph', function() {
       // takes the place of units.updateSelected
       // we can also "select" edges where both src and dst have ids
       const select = bluebird.coroutine(function*(vertex_id) {
-        let selected = { edge: sg.getEdge(vertex_id) };
+        const selected = { edge: sg.getEdge(vertex_id) };
         selected.isForward = sg.hasIdea(selected.edge.src);
         selected.branches = yield units.getBranches(sg, selected.edge, selected.isForward);
         return selected;
@@ -410,13 +410,13 @@ describe('subgraph', function() {
 
       describe('matcher', function() {
         it('id', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.r_p);
+          const selected = yield select(sg_keys.r_p);
           expect(selected.branches.length).to.equal(2); // there are two things linked
           expect(sg.getMatch(selected.edge.dst).matcher).to.equal(subgraph.matcher.id);
           sinon.stub(selected.branches, 'filter', selected.branches.filter);
           sinon.spy(selected.branches, 'map');
 
-          let branches = yield units.expandEdge(sg, selected);
+          const branches = yield units.expandEdge(sg, selected);
 
           expect(branches.length).to.equal(1); // only one is a match
           expect(selected.branches.filter).to.have.callCount(1);
@@ -424,13 +424,13 @@ describe('subgraph', function() {
         }));
 
         it('filler', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.p_q);
+          const selected = yield select(sg_keys.p_q);
           expect(selected.branches.length).to.equal(1); // only one thing is linked
           expect(sg.getMatch(selected.edge.dst).matcher).to.equal(subgraph.matcher.filler);
           sinon.spy(selected.branches, 'filter');
           sinon.spy(selected.branches, 'map');
 
-          let branches = yield units.expandEdge(sg, selected);
+          const branches = yield units.expandEdge(sg, selected);
 
           expect(branches.length).to.equal(1);
           expect(selected.branches.filter).to.have.callCount(0);
@@ -438,13 +438,13 @@ describe('subgraph', function() {
         }));
 
         it('any data', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.s_r);
+          const selected = yield select(sg_keys.s_r);
           expect(selected.branches.length).to.equal(1);
           expect(sg.getMatch(selected.edge.src).matcher).to.equal(subgraph.matcher.exact);
           sinon.spy(selected.branches, 'filter');
           sinon.stub(selected.branches, 'map', selected.branches.map);
 
-          let branches = yield units.expandEdge(sg, selected);
+          const branches = yield units.expandEdge(sg, selected);
 
           expect(branches.length).to.equal(1);
           expect(selected.branches.filter).to.have.callCount(0);
@@ -454,28 +454,28 @@ describe('subgraph', function() {
 
       describe('branches', function() {
         it('none', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.s_r);
+          const selected = yield select(sg_keys.s_r);
           selected.branches = [data.quadrilateral]; // change the branches to something that won't match
-          let branches = yield units.expandEdge(sg, selected);
+          const branches = yield units.expandEdge(sg, selected);
 
           expect(branches.length).to.equal(0);
         }));
 
         it('one', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.s_r);
-          let branches = yield units.expandEdge(sg, selected);
+          const selected = yield select(sg_keys.s_r);
+          const branches = yield units.expandEdge(sg, selected);
 
           // change subgraph directly
           expect(branches.length).to.equal(1);
           expect(branches[0]).to.equal(sg);
 
-          let matchedIdeas = branches.map((s)=>s.getIdea(sg_keys.s));
+          const matchedIdeas = branches.map((s)=>s.getIdea(sg_keys.s));
           expect(matchedIdeas).to.include(data.square);
         }));
 
         it('multiple', bluebird.coroutine(function*() {
-          let selected = yield select(sg_keys.h_p);
-          let branches = yield units.expandEdge(sg, selected);
+          const selected = yield select(sg_keys.h_p);
+          const branches = yield units.expandEdge(sg, selected);
 
           // copy the subgraph
           // let the last one carry through
@@ -484,7 +484,7 @@ describe('subgraph', function() {
           expect(branches[1]).to.not.equal(sg);
           expect(branches[2]).to.equal(sg);
 
-          let matchedIdeas = branches.map((s)=>s.getIdea(sg_keys.h));
+          const matchedIdeas = branches.map((s)=>s.getIdea(sg_keys.h));
           expect(matchedIdeas).to.include(data.square);
           expect(matchedIdeas).to.include(data.rectangle);
           expect(matchedIdeas).to.include(data.rhombus);
