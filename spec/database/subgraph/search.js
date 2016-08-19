@@ -43,6 +43,29 @@ describe('subgraph', function() {
       expect(result.getIdea(sg_keys.q)).to.deep.equal(data.quadrilateral);
     }));
 
-    it.skip('no match');
+    it('no match', bluebird.coroutine(function*() {
+      let data = {
+        store: { name: 'store' },
+        apple: { name: 'apple' },
+        banana: { name: 'banana' },
+      };
+
+      yield ideas.createGraph(data, [
+        ['store', 'thought_description', 'banana'], // XXX link for "has a" or "contains"
+      ]);
+
+      let sg = new subgraph.units.Subgraph();
+      let sg_keys = {};
+      sg_keys.s = sg.addVertex(subgraph.matcher.id, data.store);
+      sg_keys.f = sg.addVertex(subgraph.matcher.exact, { name: 'apple' });
+      sg_keys.s_f = sg.addEdge(sg_keys.s, links.get('thought_description'), sg_keys.f);
+
+      let result = yield subgraph.search(sg);
+
+      // we should still get an array
+      expect(!!result).to.equal(true);
+      expect(result).to.be.an('array');
+      expect(result.length).to.equal(0);
+    }));
   }); // end search
 }); // end subgraph
