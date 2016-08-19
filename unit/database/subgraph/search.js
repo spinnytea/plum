@@ -453,7 +453,13 @@ describe('subgraph', function() {
       }); // end matcher
 
       describe('branches', function() {
-        it.skip('none');
+        it('none', bluebird.coroutine(function*() {
+          let selected = yield select(sg_keys.s_r);
+          selected.branches = [data.quadrilateral]; // change the branches to something that won't match
+          let branches = yield units.expandEdge(sg, selected);
+
+          expect(branches.length).to.equal(0);
+        }));
 
         it('one', bluebird.coroutine(function*() {
           let selected = yield select(sg_keys.s_r);
