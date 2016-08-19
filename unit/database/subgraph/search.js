@@ -79,7 +79,7 @@ describe('subgraph', function() {
     describe('search', function() {
       it('noop concrete', function() {
         const sg = { concrete: true };
-        return subgraph.search(sg).then(function(result) {
+        return units.search(sg).then(function(result) {
           expect(result).to.deep.equal([sg]);
           expect(result[0]).to.equal(sg);
         });
@@ -89,7 +89,7 @@ describe('subgraph', function() {
         const edges = makeEdges([1,0,2,0,3,0,4]);
         const sg = { allEdges: ()=>(edges), copy: ()=>('copy') };
 
-        subgraph.search(sg);
+        units.search(sg);
 
         const stub = subgraph.search.units.recursiveSearch;
         expect(stub).to.have.callCount(1);

@@ -4,6 +4,18 @@ const bluebird = require('bluebird');
 const subgraph = require('../subgraph');
 // TODO review file after testing is done
 
+module.exports = exports = search;
+
+Object.defineProperty(exports, 'units', { value: {} });
+exports.units.search = search;
+exports.units.recursiveSearch = recursiveSearch;
+exports.units.verifyEdges = verifyEdges;
+exports.units.verifyEdge = verifyEdge;
+exports.units.findEdgeToExpand = findEdgeToExpand;
+exports.units.updateSelected = updateSelected;
+exports.units.getBranches = getBranches;
+exports.units.expandEdge = expandEdge;
+
 // find a list of subgraphs in the database that matches the supplied subgraph
 //
 // use Prim's algorithm to expand the known subgraph
@@ -11,14 +23,14 @@ const subgraph = require('../subgraph');
 // we use edges to find new ones
 //
 // Note: it's best if the subgraph is flat before running this
-module.exports = exports = function search(sg) {
+function search(sg) {
   if(sg.concrete) return Promise.resolve([sg]);
 
   // sort high[0,1,...] to low[...,11,12]
   let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
 
   return exports.units.recursiveSearch(sg.copy(), edges);
-};
+}
 
 function recursiveSearch(sg, edges) {
   return bluebird.coroutine(function*() {
@@ -50,15 +62,6 @@ function recursiveSearch(sg, edges) {
     }
   })();
 }
-
-Object.defineProperty(exports, 'units', { value: {} });
-exports.units.recursiveSearch = recursiveSearch;
-exports.units.verifyEdges = verifyEdges;
-exports.units.verifyEdge = verifyEdge;
-exports.units.findEdgeToExpand = findEdgeToExpand;
-exports.units.updateSelected = updateSelected;
-exports.units.getBranches = getBranches;
-exports.units.expandEdge = expandEdge;
 
 // 1) make a copy of edges (we don't want to prune the original)
 // 2) collect the edges that have src and dst, since we don't need to consider them
