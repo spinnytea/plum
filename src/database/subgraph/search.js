@@ -224,13 +224,14 @@ function expandEdge(sg, selected) {
 
     let matchedBranches;
     switch(match.matcher) {
+      // id needs a matcher, but doesn't need a promise
+      // Note: we'll only really get here if we are using a pointer; otherwise the id will be identified when we create the subgraph
+      case subgraph.matcher.id:
+        matchedBranches = selected.branches.filter((idea)=>match.matcher(idea, matchData));
+        break;
       // filter matches all branches
       case subgraph.matcher.filler:
         matchedBranches = selected.branches;
-        break;
-      // id needs a matcher, but doesn't need a promise
-      case subgraph.matcher.id:
-        matchedBranches = selected.branches.filter((idea)=>match.matcher(idea, matchData));
         break;
 
       // the hard case gets the data, which requires a promise
