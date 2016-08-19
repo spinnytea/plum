@@ -55,7 +55,6 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   let ls = memory.get(this.id).links;
   let list = ls[link.name];
   delete list[idea.id];
-  /* istanbul ignore else */
   if(utils.isEmpty(list)) {
     delete ls[link.name];
   }
@@ -64,7 +63,6 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   ls = memory.get(idea.id).links;
   list = ls[link.opposite.name];
   delete list[this.id];
-  /* istanbul ignore else */
   if(utils.isEmpty(list)) {
     delete ls[link.opposite.name];
   }
