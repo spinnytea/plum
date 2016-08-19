@@ -1,4 +1,5 @@
 'use strict';
+const bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-as-promised')).expect;
 const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
@@ -10,149 +11,128 @@ describe('subgraph', function() {
     beforeEach(function() { sg = new subgraph.units.Subgraph(); });
 
     describe('getData', function() {
-      it('idea without data', function() {
+      it('idea without data', bluebird.coroutine(function*() {
         const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
-        return sg.getData(v).then(function(data) {
-          expect(data).to.equal(undefined);
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal(undefined);
-        });
-      });
+        expect(yield sg.getData(v)).to.equal(undefined);
+        expect(yield sg.getData(v)).to.equal(undefined);
+      }));
       
-      it('idea with data', function() {
+      it('idea with data', bluebird.coroutine(function*() {
         const id = '_test';
         const v = sg.addVertex(subgraph.matcher.id, { id: id });
-        return ideas.proxy(id).setData('banana').then(function() {
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal('banana');
-          return sg.getData(v);
-        }).then(function(data) {
-          expect(data).to.equal('banana');
-          return ideas.delete(id);
-        });
-      });
+        yield ideas.proxy(id).setData('banana');
+        expect(yield sg.getData(v)).to.equal('banana');
+        expect(yield sg.getData(v)).to.equal('banana');
+        yield ideas.delete(id);
+      }));
     }); // end getData
   }); // end Subgraph
 
   describe('matcher', function() {
-    // matcher.id shouldn't ever actually be used in subgraph.search
-    // it doesn't even really make sense in the context of matchRef (since it doesn't use data)
-    it.skip('id', function() {
-      var mark = ideas.create();
-      var apple = ideas.create();
-      mark.link(links.get('thought_description'), apple);
+    it('id', bluebird.coroutine(function*() {
+      const data = { mark: undefined, apple: undefined, fruit: undefined };
+      yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
+      yield data.fruit.setData(data.apple.id);
 
-      var sg = new subgraph.Subgraph();
-      var m = sg.addVertex(subgraph.matcher.id, mark.id);
-      var a = sg.addVertex(subgraph.matcher.id, apple.id);
+      const sg = new subgraph.units.Subgraph();
+      const m = sg.addVertex(subgraph.matcher.id, data.mark);
+      const f = sg.addVertex(subgraph.matcher.id, data.fruit);
+      const a = sg.addVertex(subgraph.matcher.id, f, { pointer: true });
       sg.addEdge(m, links.get('thought_description'), a);
 
-      var result = subgraph.search(sg);
+      let result = yield subgraph.search(sg);
       expect(result.length).to.equal(1);
-      expect(sg).to.equal(result[0]);
-
-      expect(sg.getIdea(m).id).to.equal(mark.id);
-      expect(sg.getIdea(a).id).to.equal(apple.id);
-    });
-
-    it.skip('filler', function() {
-      var mark = ideas.create();
-      var apple = ideas.create();
-      mark.link(links.get('thought_description'), apple);
-
-      var sg = new subgraph.Subgraph();
-      var m = sg.addVertex(subgraph.matcher.id, mark.id);
-      var a = sg.addVertex(subgraph.matcher.filler);
-      sg.addEdge(m, links.get('thought_description'), a);
-
-      var result = subgraph.search(sg);
-      expect(result.length).to.equal(1);
-      expect(sg).to.equal(result[0]);
-
-      expect(sg.getIdea(m).id).to.equal(mark.id);
-      expect(sg.getIdea(a).id).to.equal(apple.id);
-    });
-
-    it.skip('exact', function() {
-      var mark = ideas.create();
-      var apple = ideas.create({'thing': 3.14});
-      mark.link(links.get('thought_description'), apple);
-
-      var sg = new subgraph.Subgraph();
-      var m = sg.addVertex(subgraph.matcher.id, mark.id);
-      var a = sg.addVertex(subgraph.matcher.exact, {'thing': 3.14});
-      sg.addEdge(m, links.get('thought_description'), a);
-
-      var result = subgraph.search(sg);
-      expect(result.length).to.equal(1);
-      expect(sg).to.equal(result[0]);
-
-      expect(sg.getIdea(m).id).to.equal(mark.id);
-      expect(sg.getIdea(a).id).to.equal(apple.id);
+      expect(result[0]).to.not.equal(sg);
+      expect(result[0].getIdea(m).id).to.equal(data.mark.id);
+      expect(result[0].getIdea(a).id).to.equal(data.apple.id);
 
       // fail
-      sg = new subgraph.Subgraph();
-      m = sg.addVertex(subgraph.matcher.id, mark.id);
-      a = sg.addVertex(subgraph.matcher.exact, {'thing': 2.71});
-      sg.addEdge(m, links.get('thought_description'), a);
+      yield data.fruit.setData('_no_an_idea_');
 
-      result = subgraph.search(sg);
+      result = yield subgraph.search(sg);
       expect(result.length).to.equal(0);
-    });
+    }));
 
-    it.skip('similar', function() {
-      var mark = ideas.create();
-      var apple = ideas.create({'thing1': 3.14, 'thing2': 2.71});
-      mark.link(links.get('thought_description'), apple);
+    it('filler', bluebird.coroutine(function*() {
+      const data = { mark: undefined, apple: undefined };
+      yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      var sg = new subgraph.Subgraph();
-      var m = sg.addVertex(subgraph.matcher.id, mark.id);
-      var a = sg.addVertex(subgraph.matcher.similar, {'thing1': 3.14});
+      const sg = new subgraph.units.Subgraph();
+      const m = sg.addVertex(subgraph.matcher.id, data.mark);
+      const a = sg.addVertex(subgraph.matcher.filler);
       sg.addEdge(m, links.get('thought_description'), a);
 
-      var result = subgraph.search(sg);
+      let result = yield subgraph.search(sg);
       expect(result.length).to.equal(1);
-      expect(sg).to.equal(result[0]);
+      expect(result[0]).to.not.equal(sg);
+      expect(result[0].getIdea(m).id).to.equal(data.mark.id);
+      expect(result[0].getIdea(a).id).to.equal(data.apple.id);
+    }));
 
-      expect(sg.getIdea(m).id).to.equal(mark.id);
-      expect(sg.getIdea(a).id).to.equal(apple.id);
+    it('exact', bluebird.coroutine(function*() {
+      const data = { mark: undefined, apple: {'thing': 3.14} };
+      yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
+
+      const sg = new subgraph.units.Subgraph();
+      const m = sg.addVertex(subgraph.matcher.id, data.mark);
+      const a = sg.addVertex(subgraph.matcher.exact, {'thing': 3.14});
+      sg.addEdge(m, links.get('thought_description'), a);
+
+      let result = yield subgraph.search(sg);
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.not.equal(sg);
+      expect(result[0].getIdea(m).id).to.equal(data.mark.id);
+      expect(result[0].getIdea(a).id).to.equal(data.apple.id);
 
       // fail
-      sg = new subgraph.Subgraph();
-      m = sg.addVertex(subgraph.matcher.id, mark.id);
-      a = sg.addVertex(subgraph.matcher.similar, {'asdfasdfasdf': 1234});
-      sg.addEdge(m, links.get('thought_description'), a);
+      sg.getMatch(a).data = {'thing': 2.71};
 
-      result = subgraph.search(sg);
+      result = yield subgraph.search(sg);
       expect(result.length).to.equal(0);
-    });
+    }));
 
-    it.skip('substring', function() {
-      var mark = ideas.create();
-      var apple = ideas.create({'thing': 'ExPeNsIvE'});
-      mark.link(links.get('thought_description'), apple);
+    it('similar', bluebird.coroutine(function*() {
+      const data = { mark: undefined, apple: {'thing1': 3.14, 'thing2': 2.71} };
+      yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      var sg = new subgraph.Subgraph();
-      var m = sg.addVertex(subgraph.matcher.id, mark.id);
-      var a = sg.addVertex(subgraph.matcher.substring, { value: 'eXpEnSiVe', path: 'thing' });
+      const sg = new subgraph.units.Subgraph();
+      const m = sg.addVertex(subgraph.matcher.id, data.mark);
+      const a = sg.addVertex(subgraph.matcher.similar, {'thing1': 3.14});
       sg.addEdge(m, links.get('thought_description'), a);
 
-      var result = subgraph.search(sg);
+      let result = yield subgraph.search(sg);
       expect(result.length).to.equal(1);
-
-      expect(sg.getIdea(m).id).to.equal(mark.id);
-      expect(sg.getIdea(a).id).to.equal(apple.id);
+      expect(result[0]).to.not.equal(sg);
+      expect(result[0].getIdea(m).id).to.equal(data.mark.id);
+      expect(result[0].getIdea(a).id).to.equal(data.apple.id);
 
       // fail
-      sg = new subgraph.Subgraph();
-      m = sg.addVertex(subgraph.matcher.id, mark.id);
-      a = sg.addVertex(subgraph.matcher.substring, { value: 'not very spensive', path: 'thinger' });
+      sg.getMatch(a).data = {'asdfasdfasdf': 1234};
+
+      result = yield subgraph.search(sg);
+      expect(result.length).to.equal(0);
+    }));
+
+    it('substring', bluebird.coroutine(function*() {
+      const data = { mark: undefined, apple: {'thing': 'ExPeNsIvE'} };
+      yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
+
+      const sg = new subgraph.units.Subgraph();
+      const m = sg.addVertex(subgraph.matcher.id, data.mark);
+      const a = sg.addVertex(subgraph.matcher.substring, { value: 'eXpEnSiVe', path: 'thing' });
       sg.addEdge(m, links.get('thought_description'), a);
 
-      result = subgraph.search(sg);
+      var result = yield subgraph.search(sg);
+      expect(result.length).to.equal(1);
+      expect(result[0]).to.not.equal(sg);
+      expect(result[0].getIdea(m).id).to.equal(data.mark.id);
+      expect(result[0].getIdea(a).id).to.equal(data.apple.id);
+
+      // fail
+      sg.getMatch(a).data = { value: 'not very spensive', path: 'thinger' };
+
+      result = yield subgraph.search(sg);
       expect(result.length).to.equal(0);
-    });
+    }));
   }); // end matcher
 }); // end subgraph

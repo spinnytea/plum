@@ -172,7 +172,7 @@ class Subgraph {
       options: options
     });
 
-    if (matcher === exports.matcher.id) {
+    if(matcher === exports.matcher.id && !options.pointer) {
       this._match.get(id).data = (data.id || data); // unwrap the id
       this._idea.set(id, ideas.proxy(data));
     } else {
