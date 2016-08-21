@@ -4,19 +4,18 @@
 const _ = require('lodash');
 const bluebird = require('bluebird');
 const config = require('./config');
+const utils = require('./utils');
 
 
 // just increment the value
 exports.anonymous = (nextID => increment(nextID || '0'));
 
 // chain together the promises so we can call this multiple times before going async
-let txnPromise = Promise.resolve();
-function chain(fn) { return (txnPromise = txnPromise.then(fn)); }
-exports.next = (key => chain(bluebird.coroutine(function*() {
+exports.next = utils.transaction(bluebird.coroutine(function*(key) {
   let nextID = yield config.get('ids', key, '0');
   nextID = increment(nextID);
   return config.set('ids', key, nextID);
-})));
+}));
 
 
 Object.defineProperty(exports, 'units', { value: {} });
