@@ -395,10 +395,10 @@ exports.matcher = {
 };
 
 
+exports.Subgraph = Subgraph;
 exports.search = require('./subgraph/search');
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.LazyCopyObject = LazyCopyObject;
-exports.units.Subgraph = Subgraph; // TODO expose on exports
 exports.units.copyParentyThing = copyParentyThing;
 
 // @param orig is a Subgraph

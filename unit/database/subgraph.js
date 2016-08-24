@@ -92,14 +92,14 @@ describe('subgraph', function() {
 
   describe('Subgraph', function() {
     let sg;
-    beforeEach(function() { sg = new subgraph.units.Subgraph(); });
+    beforeEach(function() { sg = new subgraph.Subgraph(); });
 
     it('construct', function() {
       expect(sg).to.have.property('_match');
     });
 
     it('copy', function() {
-      const orig = new subgraph.units.Subgraph();
+      const orig = new subgraph.Subgraph();
       const copy = orig.copy();
       expect(copy).to.deep.equal(orig);
     });
@@ -474,7 +474,7 @@ describe('subgraph', function() {
       '},"vc":3,"ec":2,"c":false}';
 
     it('stringify', function() {
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const v1 = sg.addVertex(subgraph.matcher.id, '_test');
       const v2 = sg.addVertex(subgraph.matcher.filler);
       const v3 = sg.addVertex(subgraph.matcher.exact, 5);
@@ -488,7 +488,7 @@ describe('subgraph', function() {
     });
 
     it('parse', function() {
-      const sg = subgraph.units.Subgraph.parse(the_string);
+      const sg = subgraph.Subgraph.parse(the_string);
 
       expect(Array.from(sg._match.data.entries())).to.deep.equal([
         [0, { matcher: subgraph.matcher.id, data: '_test', options: { transitionable: false, pointer: false }}],
@@ -508,7 +508,7 @@ describe('subgraph', function() {
     });
 
     it('they are symmetric', function() {
-      const sg = subgraph.units.Subgraph.parse(the_string);
+      const sg = subgraph.Subgraph.parse(the_string);
       const str = sg.stringify();
       expect(str).to.equal(the_string);
     });

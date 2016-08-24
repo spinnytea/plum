@@ -8,7 +8,7 @@ const subgraph = require('../../src/database/subgraph');
 describe('subgraph', function() {
   describe('Subgraph', function() {
     let sg;
-    beforeEach(function() { sg = new subgraph.units.Subgraph(); });
+    beforeEach(function() { sg = new subgraph.Subgraph(); });
 
     describe('getData', function() {
       it('idea without data', bluebird.coroutine(function*() {
@@ -34,7 +34,7 @@ describe('subgraph', function() {
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
       yield data.fruit.setData(data.apple.id);
 
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const m = sg.addVertex(subgraph.matcher.id, data.mark);
       const f = sg.addVertex(subgraph.matcher.id, data.fruit);
       const a = sg.addVertex(subgraph.matcher.id, f, { pointer: true });
@@ -57,7 +57,7 @@ describe('subgraph', function() {
       const data = { mark: undefined, apple: undefined };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const m = sg.addVertex(subgraph.matcher.id, data.mark);
       const a = sg.addVertex(subgraph.matcher.filler);
       sg.addEdge(m, links.get('thought_description'), a);
@@ -73,7 +73,7 @@ describe('subgraph', function() {
       const data = { mark: undefined, apple: {'thing': 3.14} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const m = sg.addVertex(subgraph.matcher.id, data.mark);
       const a = sg.addVertex(subgraph.matcher.exact, {'thing': 3.14});
       sg.addEdge(m, links.get('thought_description'), a);
@@ -95,7 +95,7 @@ describe('subgraph', function() {
       const data = { mark: undefined, apple: {'thing1': 3.14, 'thing2': 2.71} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const m = sg.addVertex(subgraph.matcher.id, data.mark);
       const a = sg.addVertex(subgraph.matcher.similar, {'thing1': 3.14});
       sg.addEdge(m, links.get('thought_description'), a);
@@ -117,7 +117,7 @@ describe('subgraph', function() {
       const data = { mark: undefined, apple: {'thing': 'ExPeNsIvE'} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
-      const sg = new subgraph.units.Subgraph();
+      const sg = new subgraph.Subgraph();
       const m = sg.addVertex(subgraph.matcher.id, data.mark);
       const a = sg.addVertex(subgraph.matcher.substring, { value: 'eXpEnSiVe', path: 'thing' });
       sg.addEdge(m, links.get('thought_description'), a);

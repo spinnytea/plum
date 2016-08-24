@@ -59,7 +59,7 @@ describe('subgraph', function() {
         subgraph.search.units[name] = sinon.stub();
       });
 
-      sg = new subgraph.units.Subgraph();
+      sg = new subgraph.Subgraph();
       sg_keys.s = sg.addVertex(subgraph.matcher.exact, {name:'square'});
       sg_keys.h = sg.addVertex(subgraph.matcher.filler);
       sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);

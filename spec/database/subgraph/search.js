@@ -19,7 +19,7 @@ describe('subgraph', function() {
         ['rectangle', 'type_of', 'quadrilateral'],
       ]);
 
-      let sg = new subgraph.units.Subgraph();
+      let sg = new subgraph.Subgraph();
       let sg_keys = {};
       sg_keys.s = sg.addVertex(subgraph.matcher.filler);
       sg_keys.r = sg.addVertex(subgraph.matcher.id, data.rectangle);
@@ -54,7 +54,7 @@ describe('subgraph', function() {
         ['store', 'thought_description', 'banana'], // XXX link for "has a" or "contains"
       ]);
 
-      let sg = new subgraph.units.Subgraph();
+      let sg = new subgraph.Subgraph();
       let sg_keys = {};
       sg_keys.s = sg.addVertex(subgraph.matcher.id, data.store);
       sg_keys.f = sg.addVertex(subgraph.matcher.exact, { name: 'apple' });
