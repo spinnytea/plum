@@ -148,7 +148,7 @@ class Subgraph {
   //                      // (it doesn't make sense to use this with matcher.filler)
   // }
   addVertex(matcher, data, options) {
-    // TODO do these NEED to be specified? can we leave them undefined?
+    // TODO do these NEED to be specified? can we leave them undefined (not defined on the options object)?
     options = _.merge({
       transitionable: false,
       pointer: false, // pointer means the match data comes from a different vertex (the data comes from the idea that backs that vertex)
@@ -176,6 +176,7 @@ class Subgraph {
       this._match.get(id).data = (data.id || data); // unwrap the id
       this._idea.set(id, ideas.proxy(data));
     } else {
+      // TODO should this always be set to false?
       this.concrete = false;
     }
 
@@ -193,7 +194,7 @@ class Subgraph {
   // @param options.byIdeaLink: during subgraph.match, instead of matching subgraph edges uses the existing idea link
   // - we can't do this because the subgraph represents our imagination, we can't plan ahead if we don't let the subgraph contain ALL the information
   addEdge(src, link, dst, options) {
-    // TODO do these NEED to be specified? can we leave them undefined?
+    // TODO do these NEED to be specified? can we leave them undefined (not defined on the options object)?
     options = _.merge({
       pref: 0,
       transitive: false,
@@ -239,7 +240,7 @@ class Subgraph {
       });
     }
 
-    // TODO set concrete to false if there is no edge between the src and dst
+    // TODO set concrete to false if there is no edge between the src and dst, or should we ALWAYS set it to false
 
     return id;
   }

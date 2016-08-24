@@ -1,6 +1,7 @@
 'use strict';
 // TODO save/load settings file
 // XXX do we really need a path AND key, we can just use the convention of dot notation
+// - the main reason for this is for ids.next, but it's easy enough to do this with key/value
 
 exports.get = ((path, key, value) => Promise.resolve(getValue(path, key, value)));
 exports.set = ((path, key, value) => Promise.resolve(setValue(path, key, value)));
