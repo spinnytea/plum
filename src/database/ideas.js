@@ -15,7 +15,7 @@ let loadFn = memoryLoad;
 let saveFn = memorySave;
 
 
-/*
+/**
  * this is the singleton that we will keep an internal reference to
  * it's basically just a named structure
  */
@@ -27,7 +27,7 @@ class CoreIdea {
   }
 }
 
-/*
+/**
  * ProxyIdea is an object that only stores the ID
  * this makes it easy to pass around as a data object, to serialize, to load
  * essentially, its just an object { id: 'x' }
@@ -39,8 +39,15 @@ class ProxyIdea {
   data() { return exports.load(this.id).then(()=>_.cloneDeep(memory.get(this.id).data)); }
   setData(data) { return exports.load(this.id).then(()=>(memory.get(this.id).data = _.cloneDeep(data))); }
   links(link) { return exports.load(this.id).then(()=>Object.keys(memory.get(this.id).links[link.name] || {}).map(function(id) { return new ProxyIdea(id); })); }
+  // addLink(link, idea) {}
   // removeLink(link, idea) {}
 }
+// XXX discussion: I want to put addLink directly in the class definition
+// - BB: bluebird, CR: coroutine
+// - I want to use BB.CR because it's elegant (is this an assumption I should discard?)
+// - I don't want to create a new CR every time we call the function (so addLink(args) { return BB.CR(fn*(){})(); } is out of the question)
+// - I don't think it's clean to save the CR as a function elsewhere and just redirect to it (const fn = BB.CR; addLink(args) { return fn(args) } )
+// - Is to bad to have a mixed definition? do I need to put addLink directly in the class (is this an assumption I should discard?)
 ProxyIdea.prototype.addLink = bluebird.coroutine(function*(link, idea) {
   yield exports.load(idea);
   yield exports.load(this.id);
