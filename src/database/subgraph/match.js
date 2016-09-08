@@ -4,7 +4,6 @@ const _ = require('lodash');
 module.exports = exports = match;
 
 Object.defineProperty(exports, 'units', { value: {} });
-exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
@@ -58,6 +57,7 @@ class SubgraphMatchMetadata {
     this.skipThisTime = [];
   }
 }
+exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 
 /**
  *
@@ -99,6 +99,7 @@ function match(outer, inner, unitsOnly) {
 }
 
 function recursiveMatch(metadata) {
+  void(metadata);
   // TODO pick an inner edge
 
   // TODO find outer edges
@@ -127,7 +128,13 @@ function recursiveMatch(metadata) {
  *  - vertexMap[inner vertex key] = outer vertex key;
  */
 function initializeVertexMap(outer, inner, unitsOnly) {
+  void(outer, inner, unitsOnly);
+  // const vertexMap = new Map();
+  // var innerIdeas = inner.allIdeas();
+
   // TODO finish
+
+  // return vertexMap;
 }
 
 /**
@@ -148,18 +155,24 @@ function initializeVertexMap(outer, inner, unitsOnly) {
  * @returns {Function}
  */
 function getOuterVertexIdFn(outerIdeas, innerCount) {
-  var x = outerIdeas.length;
+  var x = outerIdeas.size;
   var lnx = Math.log(x);
   if(innerCount > x*lnx / (x*Math.LN2-lnx)) {
     // build an index (outer.idea.id -> outer.vertex_id)
-    var inverseOuterMap = _.reduce(outerIdeas, function(map, vo_idea, vo_key) {
-      map[vo_idea.id] = vo_key;
-      return map;
-    }, {});
-    return function(id) { return inverseOuterMap[id]; };
+    var inverseOuterMap = {};
+    outerIdeas.forEach(function(vo_idea, vo_key) {
+      inverseOuterMap[vo_idea.id] = vo_key;
+    });
+    return function index(id) {
+      return inverseOuterMap[id];
+    };
   } else {
     // do a dumb search through the list
-    var list = outerIdeas;
-    return function(id) { return _.findKey(list, function(i) { return id === i.id; }); };
+    return function search(id) {
+      var found = null;
+      // TODO is there a more elegant implementation
+      outerIdeas.forEach(function(vo_idea, vo_key) { if(id === vo_idea.id) found = vo_key; });
+      return found;
+    };
   }
 }
