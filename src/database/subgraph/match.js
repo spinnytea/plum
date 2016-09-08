@@ -8,6 +8,7 @@ exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
+exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 
 /**
  * an object containing state info for the subgraph match
@@ -98,13 +99,67 @@ function match(outer, inner, unitsOnly) {
 }
 
 function recursiveMatch(metadata) {
-  // TODO finish
+  // TODO pick an inner edge
+
+  // TODO find outer edges
+
+  // TODO 0 outer
+  // - deal with vertex.options.pointer
+  // - otherwise return no match
+
+  // TODO 1 outer
+  // - reuse metadata
+  // - are we finished? return
+  // - recurse
+
+  // TODO + outer
+  // - loop over matches
+  // - clone metadata
+  // - are we finished? done
+  // - recurse
 }
 
 /**
+ * @param outer
+ * @param inner
+ * @param unitsOnly
  * @return an object of key-value pairs
  *  - vertexMap[inner vertex key] = outer vertex key;
  */
 function initializeVertexMap(outer, inner, unitsOnly) {
   // TODO finish
+}
+
+/**
+ * assumption: objects are hash maps
+ * ((ni+no)*log(no) vs (ni*no))
+ * xlnx / (x-lnx); if ni is greater than that thing, use the index
+ * otherwise, it's faster to simply search for the elements
+ * this turns out to be a really small number, but ni is typically even smaller
+ *
+ * n is inner (wolfram alpha assume i is sqrt -1)
+ * x is outer (since this is the input to our equation, I guess)
+ * plot ((n+x)*log2(x)) vs (n*x) where x = 100 for n from 0 to 10
+ * solve (n+x)*log2(x) = (n*x) for n
+ * plot x*log(x) / (x * log(2) - log(x)) for x from 2 to 100
+ *
+ * @param outerIdeas - list of all outer ideas
+ * @param innerCount - number of inner ideas
+ * @returns {Function}
+ */
+function getOuterVertexIdFn(outerIdeas, innerCount) {
+  var x = outerIdeas.length;
+  var lnx = Math.log(x);
+  if(innerCount > x*lnx / (x*Math.LN2-lnx)) {
+    // build an index (outer.idea.id -> outer.vertex_id)
+    var inverseOuterMap = _.reduce(outerIdeas, function(map, vo_idea, vo_key) {
+      map[vo_idea.id] = vo_key;
+      return map;
+    }, {});
+    return function(id) { return inverseOuterMap[id]; };
+  } else {
+    // do a dumb search through the list
+    var list = outerIdeas;
+    return function(id) { return _.findKey(list, function(i) { return id === i.id; }); };
+  }
 }
