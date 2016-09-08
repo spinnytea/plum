@@ -6,6 +6,7 @@ module.exports = exports = match;
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 exports.units.match = match;
+exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
 
 /**
@@ -28,10 +29,10 @@ class SubgraphMatchMetadata {
     this.innerEdges = inner.allEdges();
 
     // vertexes we have matched so far
-    // TODO reconsider data structure; es6 Map?
     this.vertexMap = exports.units.initializeVertexMap(outer, inner, unitsOnly);
     // inverse map
-    this.inverseMap = _.invert(this.vertexMap);
+    this.inverseMap = new Map();
+    this.vertexMap.forEach(this.inverseMap.set);
 
     // a list of edges we are going to skip until we match our next edge
     // TODO reconsider data structure; es6 Set?
@@ -67,13 +68,37 @@ class SubgraphMatchMetadata {
  *  - it's primarily used to see if a goal state can be reached
  */
 function match(outer, inner, unitsOnly) {
-  // TODO check all the cases for exiting early with no match
+  if(!outer.concrete)
+    throw new RangeError('the outer subgraph must be concrete before you can match against it');
+
+  if(inner._vertexCount === 0)
+    return [];
+
+  // the inner must fit a subset of outer
+  // if the inner is larger, then this is impossible
+  if(inner._vertexCount > outer._vertexCount || inner._edgeCount > outer._edgeCount)
+    return [];
+
+  // ensure it's a boolean
+  unitsOnly = (unitsOnly === true);
 
   const metadata = exports.units.SubgraphMatchMetadata(outer, inner, unitsOnly);
 
-  // TODO exit early if vertex map is finished
+  // if there are no edges, then there is nothing to do in the recursive step
+  if(inner._edgeCount === 0) {
+    if(metadata.vertexMap.size === inner._vertexCount)
+      return [metadata.vertexMap];
+    return [];
+  }
 
-  // TODO recurse
+  // recurse over the edges
+  return exports.units.recursiveMatch(metadata).filter(function(map) {
+    return map.size === inner._vertexCount;
+  });
+}
+
+function recursiveMatch(metadata) {
+  // TODO finish
 }
 
 /**
