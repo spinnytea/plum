@@ -9,6 +9,7 @@ exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
+exports.units.filterOuter = filterOuter;
 
 /**
  * an object containing state info for the subgraph match
@@ -25,7 +26,7 @@ class SubgraphMatchMetadata {
     this.unitsOnly = unitsOnly;
 
     // the edges in the outer subgraph, grouped by link
-    this.outerEdges = {};
+    this.outerEdges = new Map();
     // a list of inner edges, will be pruned as they are validated
     this.innerEdges = inner.allEdges();
 
@@ -36,8 +37,7 @@ class SubgraphMatchMetadata {
     vertexMap.forEach(this.inverseMap.set);
 
     // a list of edges we are going to skip until we match our next edge
-    // TODO reconsider data structure; es6 Set?
-    this.skipThisTime = [];
+    this.skipThisTime = new Set();
 
     // TODO fill outer edges, grouped by type
   }
@@ -54,7 +54,7 @@ class SubgraphMatchMetadata {
     this.innerEdges = innerEdges;
     this.vertexMap = vertexMap;
     this.inverseMap = inverseMap;
-    this.skipThisTime = [];
+    this.skipThisTime = new Set();
   }
 }
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
@@ -84,28 +84,52 @@ function match(outer, inner, unitsOnly) {
   unitsOnly = (unitsOnly === true);
 
   return exports.units.initializeVertexMap(outer, inner, unitsOnly).then(function(vertexMap) {
+    // if vertexMap doesn't exist, then there is no match
+    if(!vertexMap) return [];
+
     // recurse over the edges
     return exports.units.recursiveMatch(exports.units.SubgraphMatchMetadata(outer, inner, vertexMap, unitsOnly));
-  }).catch(function() {
-    // if something goes wrong, then just return no match
-    return Promise.resolve([]);
   });
 }
 
 function recursiveMatch(metadata) {
   if(metadata.inner._edgeCount === 0) {
     if(metadata.vertexMap.size === metadata.inner._vertexCount)
-      return [metadata.vertexMap];
-    return [];
+      return Promise.resolve([metadata.vertexMap]);
+    return Promise.resolve([]);
   }
 
-  // TODO pick an inner edge
+  // pick the best inner edge
+  // (this helps us reduce the number of branches)
+  var innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
+    if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
+      return curr;
+    return prev;
+  }, null);
 
-  // TODO find outer edges
+  // find all matching outer edges
+  var matches = metadata.outerEdges.get(innerEdge).filter(function(currEdge) {
+    return exports.units.filterOuter(metadata, currEdge, innerEdge);
+  });
 
-  // TODO 0 outer
+  // 0 outer
   // - deal with vertex.options.pointer
   // - otherwise return no match
+  if(matches.length === 0) {
+    var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+    var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+
+    // because of indirection, we may need to skip an edge and try the next best one
+    // so if our current edge uses inderection, and there are other edges to try, then, well, try again
+    // but next time, don't consider this edge
+    if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
+      metadata.skipThisTime.push(innerEdge);
+      return exports.units.recursiveMatch(metadata);
+    }
+
+    // no matches, and we've skipped everything
+    return Promise.resolve([]);
+  }
 
   // TODO 1 outer
   // - reuse metadata
@@ -157,6 +181,8 @@ function initializeVertexMap(outer, inner, unitsOnly) {
 
   return Promise.all(promises).then(function() {
     return vertexMap;
+  }, function() {
+    return undefined;
   });
 }
 
@@ -230,4 +256,9 @@ function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitio
     // TODO we need a distance function for each kind of unit, use that instead
     return _.isEqual(vo_data, vi_data);
   }
+}
+
+function filterOuter(metadata, currEdge, innerEdge) {
+  void(metadata, currEdge, innerEdge);
+  // FIXME finish
 }
