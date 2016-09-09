@@ -6,10 +6,116 @@ module.exports = exports = match;
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
+// exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata; // hooked up below the class
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.filterOuter = filterOuter;
+
+/**
+ * @param outer - subgraph, must be concrete
+ * @param inner - subgraph, the one we are trying to find within outer
+ * @param unitsOnly - specific to transitionable vertices
+ *  - when we need to see if a transition is possible, the match needs to see if we can combine the values
+ *  - it's primarily used to find the distance between two states
+ *  - it's primarily used to see if a goal state can be reached
+ */
+function match(outer, inner, unitsOnly) {
+  if(!outer.concrete)
+    throw new RangeError('the outer subgraph must be concrete before you can match against it');
+
+  if(inner._vertexCount === 0)
+    return Promise.resolve([]);
+
+  // the inner must fit a subset of outer
+  // if the inner is larger, then this is impossible
+  if(inner._vertexCount > outer._vertexCount || inner._edgeCount > outer._edgeCount)
+    return Promise.resolve([]);
+
+  // ensure it's a boolean
+  // this is also to prove that the default value should be false (we need to specifically opt-in for true)
+  unitsOnly = (unitsOnly === true);
+
+  return exports.units.initializeVertexMap(outer, inner, unitsOnly).then(function(vertexMap) {
+    // if vertexMap doesn't exist, then there is no match
+    if(!vertexMap) return [];
+
+    // recurse over the edges
+    return exports.units.recursiveMatch(exports.units.SubgraphMatchMetadata(outer, inner, vertexMap, unitsOnly));
+  });
+}
+
+function recursiveMatch(metadata) {
+  if(metadata.inner._edgeCount === 0) {
+    if(metadata.vertexMap.size === metadata.inner._vertexCount)
+      return Promise.resolve([metadata.vertexMap]);
+    return Promise.resolve([]);
+  }
+
+  // pick the best inner edge
+  // (this helps us reduce the number of branches)
+  var innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
+    if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
+      return curr;
+    return prev;
+  }, null);
+
+  // find all matching outer edges
+  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(currEdge) {
+    return exports.units.filterOuter(metadata, currEdge, innerEdge);
+  })).then(function(matches) {
+    // clear the list of unmatched edges
+    return matches.filter(_.identity);
+  }).then(function(matches) {
+    // 0 outer
+    // - deal with vertex.options.pointer
+    // - otherwise return no match
+    if(matches.length === 0) {
+      var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+      var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+
+      // because of indirection, we may need to skip an edge and try the next best one
+      // so if our current edge uses inderection, and there are other edges to try, then, well, try again
+      // but next time, don't consider this edge
+      if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
+        metadata.skipThisTime.push(innerEdge);
+        return exports.units.recursiveMatch(metadata);
+      }
+
+      // no matches, and we've skipped everything
+      return [];
+    }
+
+    // TODO common pre-clone tasks here
+
+    // 1 outer
+    // - reuse metadata
+    // - recurse
+    if(matches.length === 1) {
+      let outerEdge = matches[0];
+
+      metadata.removeInnerEdge(innerEdge);
+      metadata.removeOuterEdge(outerEdge);
+      metadata.updateVertexMap(innerEdge, outerEdge);
+      metadata.skipThisTime.clear();
+      return exports.units.recursiveMatch(metadata);
+    }
+
+    // + outer
+    // - loop over matches
+    // - clone metadata
+    // - recurse
+    return Promise.all(matches.map(function(outerEdge) {
+      let meta = metadata.clone();
+      meta.removeInnerEdge(innerEdge);
+      meta.removeOuterEdge(outerEdge);
+      meta.updateVertexMap(innerEdge, outerEdge);
+      meta.skipThisTime.clear();
+      return exports.units.recursiveMatch(meta);
+    })).then(_.flatten);
+  });
+}
+
 
 /**
  * an object containing state info for the subgraph match
@@ -64,119 +170,16 @@ class SubgraphMatchMetadata {
     _.pull(this.innerEdges, innerEdge);
   }
   removeOuterEdge(outerEdge) {
-    // FIXME finish
+    _.pull(this.outerEdges.get(outerEdge.link.name), outerEdge);
   }
   updateVertexMap(innerEdge, outerEdge) {
-    // FIXME finish
+    this.vertexMap.set(innerEdge.src, outerEdge.src);
+    this.vertexMap.set(innerEdge.dst, outerEdge.dst);
+    this.inverseMap.set(outerEdge.src, innerEdge.src);
+    this.inverseMap.set(outerEdge.dst, innerEdge.dst);
   }
 }
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
-
-/**
- * @param outer - subgraph, must be concrete
- * @param inner - subgraph, the one we are trying to find within outer
- * @param unitsOnly - specific to transitionable vertices
- *  - when we need to see if a transition is possible, the match needs to see if we can combine the values
- *  - it's primarily used to find the distance between two states
- *  - it's primarily used to see if a goal state can be reached
- */
-function match(outer, inner, unitsOnly) {
-  if(!outer.concrete)
-    throw new RangeError('the outer subgraph must be concrete before you can match against it');
-
-  if(inner._vertexCount === 0)
-    return Promise.resolve([]);
-
-  // the inner must fit a subset of outer
-  // if the inner is larger, then this is impossible
-  if(inner._vertexCount > outer._vertexCount || inner._edgeCount > outer._edgeCount)
-    return Promise.resolve([]);
-
-  // ensure it's a boolean
-  // this is also to prove that the default value should be false (we need to specifically opt-in for true)
-  unitsOnly = (unitsOnly === true);
-
-  return exports.units.initializeVertexMap(outer, inner, unitsOnly).then(function(vertexMap) {
-    // if vertexMap doesn't exist, then there is no match
-    if(!vertexMap) return [];
-
-    // recurse over the edges
-    return exports.units.recursiveMatch(exports.units.SubgraphMatchMetadata(outer, inner, vertexMap, unitsOnly));
-  });
-}
-
-function recursiveMatch(metadata) {
-  if(metadata.inner._edgeCount === 0) {
-    if(metadata.vertexMap.size === metadata.inner._vertexCount)
-      return Promise.resolve([metadata.vertexMap]);
-    return Promise.resolve([]);
-  }
-
-  // pick the best inner edge
-  // (this helps us reduce the number of branches)
-  var innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
-    if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
-      return curr;
-    return prev;
-  }, null);
-
-  // find all matching outer edges
-  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(currEdge) {
-    if(exports.units.filterOuter(metadata, currEdge, innerEdge))
-      return currEdge;
-    return undefined;
-  })).then(function(matches) {
-    // clear the list of unmatched edges
-    return matches.filter(_.identity);
-  }).then(function(matches) {
-    // 0 outer
-    // - deal with vertex.options.pointer
-    // - otherwise return no match
-    if(matches.length === 0) {
-      var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-      var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
-
-      // because of indirection, we may need to skip an edge and try the next best one
-      // so if our current edge uses inderection, and there are other edges to try, then, well, try again
-      // but next time, don't consider this edge
-      if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
-        metadata.skipThisTime.push(innerEdge);
-        return exports.units.recursiveMatch(metadata);
-      }
-
-      // no matches, and we've skipped everything
-      return [];
-    }
-
-    // TODO common pre-clone tasks here
-
-    // 1 outer
-    // - reuse metadata
-    // - recurse
-    if(matches.length === 1) {
-      let outerEdge = matches[0];
-
-      metadata.removeInnerEdge(innerEdge);
-      metadata.removeOuterEdge(outerEdge);
-      metadata.updateVertexMap(innerEdge, outerEdge);
-      metadata.skipThisTime.clear();
-      return exports.units.recursiveMatch(metadata);
-    }
-
-    // + outer
-    // - loop over matches
-    // - clone metadata
-    // - recurse
-    return Promise.all(matches.map(function(outerEdge) {
-      let meta = metadata.clone();
-      meta.removeInnerEdge(innerEdge);
-      meta.removeOuterEdge(outerEdge);
-      meta.updateVertexMap(innerEdge, outerEdge);
-      meta.skipThisTime.clear();
-      return exports.units.recursiveMatch(meta);
-    })).then(_.flatten);
-  });
-}
 
 /**
  * @param outer
@@ -209,7 +212,6 @@ function initializeVertexMap(outer, inner, unitsOnly) {
           vi_data,
           unitsOnly);
 
-        // TODO if the match is not possible, then exit early and return []
         if(!possible)
           return Promise.reject();
       }));
@@ -290,12 +292,23 @@ function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitio
     // match the units
     return vo_data.unit === vi_data.unit;
   } else {
-    // TODO we need a distance function for each kind of unit, use that instead
+    // XXX we need a distance function for each kind of unit, use that instead
     return _.isEqual(vo_data, vi_data);
   }
 }
 
-function filterOuter(metadata, currEdge, innerEdge) {
-  void(metadata, currEdge, innerEdge);
-  // FIXME finish
+/**
+ * check to see if the outer edge is a good match for the inner edge
+ *
+ * @prereq: outerEdge.link === innerEdge.link
+ * @param metadata
+ * @param outerEdge
+ * @param innerEdge
+ * @return a promise that resolves (outerEdge if we should use outer edge to expand, undefined otherwise)
+ */
+function filterOuter(metadata, outerEdge, innerEdge) {
+  void(metadata, outerEdge, innerEdge);
+
+  // skip the vertices that are mapped to something different
+  // if(metadata.vertexMap.has(outerEdge.src))
 }
