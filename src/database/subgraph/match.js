@@ -12,7 +12,7 @@ exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 
 /**
  * an object containing state info for the subgraph match
- * it's a complicated process with a lot of variables, so it's nice to have them packaged up
+ * it's a complicated process with a lot of parameters, so it's nice to have them packaged up
  * it's a complicated process, so we need to compute some indexes and caches to speed it up
  */
 class SubgraphMatchMetadata {
@@ -30,7 +30,7 @@ class SubgraphMatchMetadata {
     this.innerEdges = inner.allEdges();
 
     // vertexes we have matched so far
-    this.vertexMap = exports.units.initializeVertexMap(outer, inner, unitsOnly);
+    this.vertexMap = exports.units.initializeVertexMap(outer, inner, unitsOnly); // TODO this is a promise
     // inverse map
     this.inverseMap = new Map();
     this.vertexMap.forEach(this.inverseMap.set);
@@ -42,7 +42,6 @@ class SubgraphMatchMetadata {
     // TODO fill outer edges, grouped by type
   }
   clone(existing, innerEdges, vertexMap, inverseMap) {
-    // var existing = subgraphOuter;
     this.outer = existing.outer;
     this.inner = existing.inner;
     this.unitsOnly = existing.unitsOnly;
@@ -61,7 +60,6 @@ class SubgraphMatchMetadata {
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 
 /**
- *
  * @param outer - subgraph, must be concrete
  * @param inner - subgraph, the one we are trying to find within outer
  * @param unitsOnly - specific to transitionable vertices
@@ -125,31 +123,43 @@ function recursiveMatch(metadata) {
  * @param outer
  * @param inner
  * @param unitsOnly
- * @return an object of key-value pairs
- *  - vertexMap[inner vertex key] = outer vertex key;
+ * @return a promise resolving to a map
+ *  - vertexMap.get(inner vertex key) = outer vertex key;
+ *  - the promise will be rejected if it's not possible
  */
 function initializeVertexMap(outer, inner, unitsOnly) {
   const vertexMap = new Map();
   const innerIdeas = inner.allIdeas();
   const getOuterVertexId = exports.units.getOuterVertexIdFn(outer.allIdeas(), innerIdeas.size);
 
-  // TODO if the match is not possible, then exit early and return []
-  var possible = true;
-
+  let promises = [];
   innerIdeas.forEach(function(vi_idea, vi_key) {
-    var vo_key = getOuterVertexId(vi_idea.id);
+    let vo_key = getOuterVertexId(vi_idea.id);
     if(vo_key) {
       vertexMap.set(vi_key, vo_key);
 
-      // TODO check if transition is possible
-      void(unitsOnly);
+      // vi.idea has been identified so we can use vi.data directly
+      promises.push(Promise.all([
+        outer.getData(vo_key),
+        inner.getData(vi_key),
+      ]).then(function([vo_data, vi_data]) {
+        let possible = vertexTransitionableAcceptable(
+          outer.getMatch(vo_key).options.transitionable,
+          vo_data,
+          inner.getMatch(vi_key).options.transitionable,
+          vi_data,
+          unitsOnly);
+
+        // TODO if the match is not possible, then exit early and return []
+        if(!possible)
+          return Promise.reject();
+      }));
     }
   });
 
-  if(!possible)
-    return undefined;
-
-  return vertexMap;
+  return Promise.all(promises).then(function() {
+    return vertexMap;
+  });
 }
 
 /**
@@ -170,11 +180,11 @@ function initializeVertexMap(outer, inner, unitsOnly) {
  * @returns {Function}
  */
 function getOuterVertexIdFn(outerIdeas, innerCount) {
-  var x = outerIdeas.size;
-  var lnx = Math.log(x);
+  const x = outerIdeas.size;
+  const lnx = Math.log(x);
   if(innerCount > x*lnx / (x*Math.LN2-lnx)) {
     // build an index (outer.idea.id -> outer.vertex_id)
-    var inverseOuterMap = {};
+    let inverseOuterMap = {};
     outerIdeas.forEach(function(vo_idea, vo_key) {
       inverseOuterMap[vo_idea.id] = vo_key;
     });
@@ -184,7 +194,7 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
   } else {
     // do a dumb search through the list
     return function search(id) {
-      var found = null;
+      let found = null;
       // TODO is there a more elegant implementation
       outerIdeas.forEach(function(vo_idea, vo_key) { if(id === vo_idea.id) found = vo_key; });
       return found;
