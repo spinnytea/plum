@@ -25,6 +25,6 @@ exports.transaction = function promiseTransaction(callback) {
     // use the arguments of this function on the callback
     // (isn't it great that arrow functions don't create their own function scope)
     // XXX what should the apply scope be: null? this? callback?
-    return (txnPromise = txnPromise.then(()=>callback.apply(null, arguments)));
+    return (txnPromise = txnPromise.then(()=>callback.apply(undefined, arguments)));
   };
 };

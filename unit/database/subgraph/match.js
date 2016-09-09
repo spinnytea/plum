@@ -64,5 +64,62 @@ describe('subgraph', function() {
         expect(fn('104')).to.equal(4);
       });
     }); // end getOuterVertexIdFn
+
+    describe('vertexTransitionableAcceptable', function() {
+      const vertexTransitionableAcceptable = subgraph.match.units.vertexTransitionableAcceptable;
+      let vo_data;
+      let vi_data;
+      let unitsOnly;
+
+      it('same data, units only', function() {
+        vo_data = { value: 1, unit: 'a' };
+        vi_data = { value: 1, unit: 'a' };
+        unitsOnly = true;
+        expect(vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+      });
+
+      it('different data, units only', function() {
+        vo_data = { value: 1, unit: 'a' };
+        vi_data = { value: 2, unit: 'a' };
+        unitsOnly = true;
+        expect(vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+      });
+
+      it('different units, units only', function() {
+        vo_data = { value: 1, unit: 'a' };
+        vi_data = { value: 1, unit: 'b' };
+        unitsOnly = true;
+        expect(vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+      });
+
+      it('same data, not units', function() {
+        vo_data = { value: 1, unit: 'a' };
+        vi_data = { value: 1, unit: 'a' };
+        unitsOnly = false;
+        expect(vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+      });
+
+      it('different data, not units', function() {
+        vo_data = { value: 1, unit: 'a' };
+        vi_data = { value: 2, unit: 'a' };
+        unitsOnly = false;
+        expect(vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+        expect(vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
+        expect(vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
+      });
+    }); // end vertexTransitionableAcceptable
   }); // end match
 }); // end subgraph

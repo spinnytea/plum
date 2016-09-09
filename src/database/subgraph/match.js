@@ -8,6 +8,7 @@ exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
+exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 
 /**
  * an object containing state info for the subgraph match
@@ -128,13 +129,27 @@ function recursiveMatch(metadata) {
  *  - vertexMap[inner vertex key] = outer vertex key;
  */
 function initializeVertexMap(outer, inner, unitsOnly) {
-  void(outer, inner, unitsOnly);
-  // const vertexMap = new Map();
-  // var innerIdeas = inner.allIdeas();
+  const vertexMap = new Map();
+  const innerIdeas = inner.allIdeas();
+  const getOuterVertexId = exports.units.getOuterVertexIdFn(outer.allIdeas(), innerIdeas.size);
 
-  // TODO finish
+  // TODO if the match is not possible, then exit early and return []
+  var possible = true;
 
-  // return vertexMap;
+  innerIdeas.forEach(function(vi_idea, vi_key) {
+    var vo_key = getOuterVertexId(vi_idea.id);
+    if(vo_key) {
+      vertexMap.set(vi_key, vo_key);
+
+      // TODO check if transition is possible
+      void(unitsOnly);
+    }
+  });
+
+  if(!possible)
+    return undefined;
+
+  return vertexMap;
 }
 
 /**
@@ -174,5 +189,37 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
       outerIdeas.forEach(function(vo_idea, vo_key) { if(id === vo_idea.id) found = vo_key; });
       return found;
     };
+  }
+}
+
+/**
+ * this function checks transitionable vertices to see if a transition is possible
+ * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
+ */
+function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitOnly) {
+  // if the inner isn't transitionable, then we don't need to check anything
+  if(!vi_transitionable) return true;
+  // the outer must be transitionable, otherwise it's a config/matcher problem
+  // the outer subgraph defines up front what values it expects to change
+  if(!vo_transitionable) return false;
+
+  // make sure we have data to work with
+  if(!vo_data) return true;
+  if(!vi_data) return true;
+
+  // this might be pedantic, but it'll make thing easier later
+  // they must either both HAVE or NOT HAVE a unit
+  if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
+
+  if(unitOnly) {
+    // actually, this is invalid
+    // we can't DO this, so we should never get here
+    if(!vo_data.hasOwnProperty('unit')) return false;
+
+    // match the units
+    return vo_data.unit === vi_data.unit;
+  } else {
+    // TODO we need a distance function for each kind of unit, use that instead
+    return _.isEqual(vo_data, vi_data);
   }
 }
