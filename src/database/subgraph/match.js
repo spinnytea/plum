@@ -56,6 +56,19 @@ class SubgraphMatchMetadata {
     this.inverseMap = inverseMap;
     this.skipThisTime = new Set();
   }
+
+  getOuterEdges(edge) {
+    return this.outerEdges.get(edge.link.name) || [];
+  }
+  removeInnerEdge(innerEdge) {
+    _.pull(this.innerEdges, innerEdge);
+  }
+  removeOuterEdge(outerEdge) {
+    // FIXME finish
+  }
+  updateVertexMap(innerEdge, outerEdge) {
+    // FIXME finish
+  }
 }
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
 
@@ -108,37 +121,61 @@ function recursiveMatch(metadata) {
   }, null);
 
   // find all matching outer edges
-  var matches = metadata.outerEdges.get(innerEdge).filter(function(currEdge) {
-    return exports.units.filterOuter(metadata, currEdge, innerEdge);
-  });
+  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(currEdge) {
+    if(exports.units.filterOuter(metadata, currEdge, innerEdge))
+      return currEdge;
+    return undefined;
+  })).then(function(matches) {
+    // clear the list of unmatched edges
+    return matches.filter(_.identity);
+  }).then(function(matches) {
+    // 0 outer
+    // - deal with vertex.options.pointer
+    // - otherwise return no match
+    if(matches.length === 0) {
+      var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+      var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
 
-  // 0 outer
-  // - deal with vertex.options.pointer
-  // - otherwise return no match
-  if(matches.length === 0) {
-    var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-    var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+      // because of indirection, we may need to skip an edge and try the next best one
+      // so if our current edge uses inderection, and there are other edges to try, then, well, try again
+      // but next time, don't consider this edge
+      if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
+        metadata.skipThisTime.push(innerEdge);
+        return exports.units.recursiveMatch(metadata);
+      }
 
-    // because of indirection, we may need to skip an edge and try the next best one
-    // so if our current edge uses inderection, and there are other edges to try, then, well, try again
-    // but next time, don't consider this edge
-    if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
-      metadata.skipThisTime.push(innerEdge);
+      // no matches, and we've skipped everything
+      return [];
+    }
+
+    // TODO common pre-clone tasks here
+
+    // 1 outer
+    // - reuse metadata
+    // - recurse
+    if(matches.length === 1) {
+      let outerEdge = matches[0];
+
+      metadata.removeInnerEdge(innerEdge);
+      metadata.removeOuterEdge(outerEdge);
+      metadata.updateVertexMap(innerEdge, outerEdge);
+      metadata.skipThisTime.clear();
       return exports.units.recursiveMatch(metadata);
     }
 
-    // no matches, and we've skipped everything
-    return Promise.resolve([]);
-  }
-
-  // TODO 1 outer
-  // - reuse metadata
-  // - recurse
-
-  // TODO + outer
-  // - loop over matches
-  // - clone metadata
-  // - recurse
+    // + outer
+    // - loop over matches
+    // - clone metadata
+    // - recurse
+    return Promise.all(matches.map(function(outerEdge) {
+      let meta = metadata.clone();
+      meta.removeInnerEdge(innerEdge);
+      meta.removeOuterEdge(outerEdge);
+      meta.updateVertexMap(innerEdge, outerEdge);
+      meta.skipThisTime.clear();
+      return exports.units.recursiveMatch(meta);
+    })).then(_.flatten);
+  });
 }
 
 /**
