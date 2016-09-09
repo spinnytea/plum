@@ -216,6 +216,7 @@ describe('subgraph', function() {
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
         expect(sg._edges.data.get(0)).to.deep.equal({
+          id: 0,
           src: v1,
           link: link,
           dst: v2,
@@ -234,6 +235,7 @@ describe('subgraph', function() {
         expect(e).to.equal(0);
         expect(sg._edgeCount).to.equal(1);
         expect(sg._edges.data.get(0)).to.deep.equal({
+          id: 0,
           src: v2,
           link: link,
           dst: v1,
@@ -498,8 +500,8 @@ describe('subgraph', function() {
       expect(Array.from(sg._idea.entries())).to.deep.equal([[0, ideas.proxy('_test')]]);
       expect(Array.from(sg._data.data.entries())).to.deep.equal([[0, 'some value']]);
       expect(Array.from(sg._edges.data.entries())).to.deep.equal([
-        [0, { src: 0, link: links.get('thought_description'), dst: 1, options: { pref: 0, transitive: false, transitionable: false }}],
-        [1, { src: 1, link: links.get('thought_description'), dst: 2, options: { pref: 0, transitive: false, transitionable: false }}]
+        [0, { id: 0, src: 0, link: links.get('thought_description'), dst: 1, options: { pref: 0, transitive: false, transitionable: false }}],
+        [1, { id: 1, src: 1, link: links.get('thought_description'), dst: 2, options: { pref: 0, transitive: false, transitionable: false }}]
       ]);
 
       expect(sg._vertexCount).to.equal(3);

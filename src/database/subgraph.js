@@ -91,6 +91,7 @@ class Subgraph {
     const edges = {};
     for(let [id, value] of this._edges.data.entries())
       edges[id] = _.assign({}, value, {
+        id: undefined,
         link: value.link.name
       });
 
@@ -122,7 +123,7 @@ class Subgraph {
     });
 
     _.forEach(json.e, function(value, id) {
-      sg._edges.set(+id, _.assign(value, { link: links.get(value.link) }));
+      sg._edges.set(+id, _.assign(value, { id: +id, link: links.get(value.link) }));
     });
 
     sg._vertexCount = json.vc;
@@ -226,6 +227,7 @@ class Subgraph {
     // store the edges in a normalized form so we don't need to account for it while searching/matching
     if (link.isOpp) {
       this._edges.set(id, {
+        id: id,
         src: dst,
         link: link.opposite,
         dst: src,
@@ -233,6 +235,7 @@ class Subgraph {
       });
     } else {
       this._edges.set(id, {
+        id: id,
         src: src,
         link: link,
         dst: dst,

@@ -11,8 +11,17 @@ exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.filterOuter = filterOuter;
+exports.units.getMatchData = getMatchData;
+exports.units.vertexFixedMatch = vertexFixedMatch;
 
 /**
+ * find a list of ways to map the inner subgraph onto the outer subgraph
+ * returns a set of mapped edges and vertices
+ *
+ * this doesn't follow any particular algorithm
+ * it picks the "best" inner edge, and finds all matching outer edges
+ * it repeats that until all the inner edges have been address
+ *
  * @param outer - subgraph, must be concrete
  * @param inner - subgraph, the one we are trying to find within outer
  * @param unitsOnly - specific to transitionable vertices
@@ -61,8 +70,8 @@ function recursiveMatch(metadata) {
   }, null);
 
   // find all matching outer edges
-  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(currEdge) {
-    return exports.units.filterOuter(metadata, currEdge, innerEdge);
+  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(outerEdge) {
+    return exports.units.filterOuter(metadata, outerEdge, innerEdge);
   })).then(function(matches) {
     // clear the list of unmatched edges
     return matches.filter(_.identity);
@@ -134,7 +143,7 @@ class SubgraphMatchMetadata {
     // the edges in the outer subgraph, grouped by link
     this.outerEdges = new Map();
     // a list of inner edges, will be pruned as they are validated
-    this.innerEdges = inner.allEdges();
+    this.innerEdges = inner.allEdges().slice(0);
 
     // vertexes we have matched so far
     this.vertexMap = vertexMap;
@@ -142,10 +151,22 @@ class SubgraphMatchMetadata {
     this.inverseMap = new Map();
     vertexMap.forEach(this.inverseMap.set);
 
+    // edges we have mapped so far
+    this.edgeMap = new Map();
+
     // a list of edges we are going to skip until we match our next edge
     this.skipThisTime = new Set();
 
-    // TODO fill outer edges, grouped by type
+
+    // fill outer edges, grouped by type
+    outer.allEdges().forEach((edge) => {
+      let list = this.outerEdges.get(edge.link.name);
+      if(!list) {
+        list = [];
+        this.outerEdges.set(edge.link.name, list);
+      }
+      list.push(edge);
+    });
   }
   clone(existing, innerEdges, vertexMap, inverseMap) {
     this.outer = existing.outer;
@@ -177,6 +198,7 @@ class SubgraphMatchMetadata {
     this.vertexMap.set(innerEdge.dst, outerEdge.dst);
     this.inverseMap.set(outerEdge.src, innerEdge.src);
     this.inverseMap.set(outerEdge.dst, innerEdge.dst);
+    this.edgeMap.set(innerEdge.id, outerEdge.id);
   }
 }
 exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata;
@@ -304,11 +326,77 @@ function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitio
  * @param metadata
  * @param outerEdge
  * @param innerEdge
- * @return a promise that resolves (outerEdge if we should use outer edge to expand, undefined otherwise)
+ * @return outerEdge if we should use outer edge to expand, undefined otherwise
+ *  - this returns either promises or values
+ *  - the calling function is expected to automatically convert the result to a promise
  */
 function filterOuter(metadata, outerEdge, innerEdge) {
-  void(metadata, outerEdge, innerEdge);
-
   // skip the vertices that are mapped to something different
-  // if(metadata.vertexMap.has(outerEdge.src))
+  if(metadata.vertexMap.has(innerEdge.src)) {
+    if(metadata.vertexMap.get(innerEdge.src) !== outerEdge.src)
+      return undefined;
+  } else {
+    // outerEdge src is mapped to a different inner id
+    if(metadata.inverseMap.has(outerEdge.src))
+      return undefined;
+  }
+  if(metadata.vertexMap.has(innerEdge.dst)) {
+    if(metadata.vertexMap.get(innerEdge.dst) !== outerEdge.dst)
+      return undefined;
+  } else {
+    // outerEdge dst is mapped to a different inner id
+    if(metadata.inverseMap.has(outerEdge.dst))
+      return undefined;
+  }
+
+  var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+  var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+
+  return Promise.all([
+    exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch),
+    exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch),
+    metadata.outer.getData(outerEdge.src),
+    metadata.outer.getData(outerEdge.dst),
+  ]).then(function([innerSrcData, innerDstData, outerSrcData, outerDstData]) {
+    // check transitionable
+    if(!vertexTransitionableAcceptable(
+        metadata.outer.getMatch(outerEdge.src).options.transitionable,
+        outerSrcData,
+        innerSrcMatch.options.transitionable,
+        innerSrcData,
+        metadata.unitsOnly))
+      return undefined;
+    if(!vertexTransitionableAcceptable(
+        metadata.outer.getMatch(outerEdge.dst).options.transitionable,
+        outerDstData,
+        innerDstMatch.options.transitionable,
+        innerDstData,
+        metadata.unitsOnly))
+      return undefined;
+
+    // check non-transitionable
+    if(!metadata.inner.getIdea(innerEdge.src)) {
+      if(!vertexFixedMatch(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly))
+        return undefined;
+    }
+    if(!metadata.inner.getIdea(innerEdge.dst)) {
+      if(!vertexFixedMatch(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly))
+        return undefined;
+    }
+
+    return outerEdge;
+  }, function() {
+    // if there was a problem, just count it as a miss
+    return undefined;
+  });
+
+}
+
+function getMatchData() {
+  // FIXME finish
+}
+
+function vertexFixedMatch() {
+  // FIXME finish
+  // TODO rename
 }
