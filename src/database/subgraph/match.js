@@ -13,7 +13,7 @@ exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.filterOuter = filterOuter;
-exports.units.getMatchData = getMatchData;
+exports.units.getData = getData;
 exports.units.vertexFixedMatch = vertexFixedMatch;
 
 /**
@@ -301,7 +301,7 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
  * this function checks transitionable vertices to see if a transition is possible
  * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
  */
-function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitOnly) {
+function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitsOnly) {
   // if the inner isn't transitionable, then we don't need to check anything
   if(!vi_transitionable) return true;
   // the outer must be transitionable, otherwise it's a config/matcher problem
@@ -316,9 +316,13 @@ function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitio
   // they must either both HAVE or NOT HAVE a unit
   if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
 
-  if(unitOnly) {
-    // actually, this is invalid
-    // we can't DO this, so we should never get here
+  if(unitsOnly) {
+    // TODO what does this mean? unit only but no units
+    // - unit only is a core part of the planning for things like distance
+    // - units are how we reason about the distance and how it will relate to other unit distances
+    //   (like how does 2 meters and 10 centimeters relate to one another?)
+    // - this 'transitionable' FORCE the data to have units? of not, then how do we measure distance?
+    // - this is a problem will will crop up in astar and planning; this unitsOnly path is specifically designed for it
     if(!vo_data.hasOwnProperty('unit')) return false;
 
     // match the units
@@ -363,8 +367,8 @@ function filterOuter(metadata, outerEdge, innerEdge) {
     // - cache them in metadata?
     const innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
     const innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
-    const innerSrcData = yield exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch);
-    const innerDstData = yield exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch);
+    const innerSrcData = yield exports.units.getData(metadata, innerEdge.src, innerSrcMatch);
+    const innerDstData = yield exports.units.getData(metadata, innerEdge.dst, innerDstMatch);
     const outerSrcData = yield metadata.outer.getData(outerEdge.src);
     const outerDstData = yield metadata.outer.getData(outerEdge.dst);
 
@@ -406,31 +410,36 @@ function filterOuter(metadata, outerEdge, innerEdge) {
  * this is thanks to match.options.pointer
  * without pointers, it would just be the first return
  *
- * XXX rename getMatchData, it's kind of misleading; "matchData" means "match.data" and that's not what this does
+ * this isn't part of subgraph.getData because this is specific to matching/searching
+ * (searching looks for the target's data, too)
+ * once the subgraph is concrete, then the data should only come from the mapped idea
+ * TL;DR: pointer is used for matching only
  */
-function getMatchData(metadata, vi_key, innerMatch) {
-  // if this is not a pointer, then we use the data at this vertex
-  // if it already is mapped, then use the data at this vertex
-  if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
-    return metadata.inner.getData(vi_key);
+function getData(metadata, vi_key, innerMatch) {
+  return bluebird.coroutine(function*() {
+    // if this is not a pointer, then we use the data at this vertex
+    // if it already is mapped, then use the data at this vertex
+    if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
+      return metadata.inner.getData(vi_key);
 
-  // if this is a pointer...
-  // (and doesn't have and idea mapped)
+    // if this is a pointer...
+    // (and doesn't have and idea mapped)
 
-  // if our inner graph has a value cached for the target, use that
-  let data = metadata.inner.getData(innerMatch.data); // FIXME this is a promise
-  if(data)
-    return data;
+    // if our inner graph has a value cached for the target, use that
+    let data = yield metadata.inner.getData(innerMatch.data); // FIXME this is a promise
+    if(data)
+      return data;
 
-  // if we have already mapped the target vertex, then use the outer data
-  // (mapped, but the inner hasn't been updated with the idea data)
-  // (note: we may not have mapped the pointer target by this point, and that's okay)
-  let vo_key = metadata.vertexMap.get(innerMatch.data);
-  if(vo_key)
-    return metadata.outer.getData(vo_key);
+    // if we have already mapped the target vertex, then use the outer data
+    // (mapped, but the inner hasn't been updated with the idea data)
+    // (note: we may not have mapped the pointer target by this point, and that's okay)
+    let vo_key = metadata.vertexMap.get(innerMatch.data);
+    if(vo_key)
+      return metadata.outer.getData(vo_key);
 
-  // we can't find data to use (this is okay)
-  return Promise.resolve(null);
+    // we can't find data to use (this is okay)
+    return Promise.resolve(null);
+  })();
 }
 
 /**
