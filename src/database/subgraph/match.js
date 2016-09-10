@@ -2,8 +2,6 @@
 const _ = require('lodash');
 const bluebird = require('bluebird');
 const subgraph = require('../subgraph');
-// TODO review and add comments after done
-// TODO make sure all fns are called with exports.units.
 
 module.exports = exports = match;
 
@@ -58,8 +56,14 @@ function match(outer, inner, unitsOnly) {
   });
 }
 
+/**
+ * match is the seed for the recursive function, this is the recursive case
+ *
+ * find an edge to expand, then expand it
+ */
 function recursiveMatch(metadata) {
-  if(metadata.inner._edgeCount === 0) {
+  // are we done?
+  if(metadata.innerEdges.length === 0) {
     if(metadata.vertexMap.size === metadata.inner._vertexCount)
       return Promise.resolve([metadata.vertexMap]);
     return Promise.resolve([]);
@@ -67,7 +71,7 @@ function recursiveMatch(metadata) {
 
   // pick the best inner edge
   // (this helps us reduce the number of branches)
-  let innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
+  const innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
     if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
       return curr;
     return prev;
@@ -84,8 +88,8 @@ function recursiveMatch(metadata) {
     // - deal with vertex.options.pointer
     // - otherwise return no match
     if(matches.length === 0) {
-      let innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-      let innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+      const innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+      const innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
 
       // because of indirection, we may need to skip an edge and try the next best one
       // so if our current edge uses inderection, and there are other edges to try, then, well, try again
@@ -99,15 +103,15 @@ function recursiveMatch(metadata) {
       return [];
     }
 
-    // TODO common pre-clone tasks here
+    // common stuff before recursion
+    // - note that when we do the many case, we don't need to do this for all the clones #winning
+    metadata.removeInnerEdge(innerEdge);
 
     // 1 outer
     // - reuse metadata
     // - recurse
     if(matches.length === 1) {
-      let outerEdge = matches[0];
-
-      metadata.removeInnerEdge(innerEdge);
+      const outerEdge = matches[0];
       metadata.removeOuterEdge(outerEdge);
       metadata.updateVertexMap(innerEdge, outerEdge);
       metadata.skipThisTime.clear();
@@ -119,11 +123,9 @@ function recursiveMatch(metadata) {
     // - clone metadata
     // - recurse
     return Promise.all(matches.map(function(outerEdge) {
-      let meta = metadata.clone();
-      meta.removeInnerEdge(innerEdge);
+      const meta = metadata.clone(); // XXX don't clone if it's the last match
       meta.removeOuterEdge(outerEdge);
       meta.updateVertexMap(innerEdge, outerEdge);
-      meta.skipThisTime.clear();
       return exports.units.recursiveMatch(meta);
     })).then(_.flatten);
   });
@@ -172,21 +174,24 @@ class SubgraphMatchMetadata {
       list.push(edge);
     });
   }
-  clone(existing, innerEdges, vertexMap, inverseMap) {
-    this.outer = existing.outer;
-    this.inner = existing.inner;
-    this.unitsOnly = existing.unitsOnly;
-
-    // outer edges are consumed as we match them, copies need their own version
-    this.outerEdges = _.clone(existing.outerEdges);
-
-    // XXX why are these modified outside of the metadata object
-    //  - they should have accessor methods
-    this.innerEdges = innerEdges;
-    this.vertexMap = vertexMap;
-    this.inverseMap = inverseMap;
-    this.skipThisTime = new Set();
+  clone() {
+    // FIXME rewrite
   }
+  // clone(existing, innerEdges, vertexMap, inverseMap) {
+  //   // this.outer = existing.outer;
+  //   // this.inner = existing.inner;
+  //   // this.unitsOnly = existing.unitsOnly;
+  //   //
+  //   // // outer edges are consumed as we match them, copies need their own version
+  //   // this.outerEdges = _.clone(existing.outerEdges);
+  //   //
+  //   // // XXX why are these modified outside of the metadata object
+  //   // //  - they should have accessor methods
+  //   // this.innerEdges = innerEdges;
+  //   // this.vertexMap = vertexMap;
+  //   // this.inverseMap = inverseMap;
+  //   // this.skipThisTime = new Set();
+  // }
 
   getOuterEdges(edge) {
     return this.outerEdges.get(edge.link.name) || [];
@@ -220,9 +225,10 @@ function initializeVertexMap(outer, inner, unitsOnly) {
   const innerIdeas = inner.allIdeas();
   const getOuterVertexId = exports.units.getOuterVertexIdFn(outer.allIdeas(), innerIdeas.size);
 
-  let promises = [];
+  // innerIdeas is a map, not a list, so there is no map function
+  const promises = [];
   innerIdeas.forEach(function(vi_idea, vi_key) {
-    let vo_key = getOuterVertexId(vi_idea.id);
+    const vo_key = getOuterVertexId(vi_idea.id);
     if(vo_key) {
       vertexMap.set(vi_key, vo_key);
 
@@ -273,7 +279,7 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
   const lnx = Math.log(x);
   if(innerCount > x*lnx / (x*Math.LN2-lnx)) {
     // build an index (outer.idea.id -> outer.vertex_id)
-    let inverseOuterMap = {};
+    const inverseOuterMap = {};
     outerIdeas.forEach(function(vo_idea, vo_key) {
       inverseOuterMap[vo_idea.id] = vo_key;
     });
@@ -352,12 +358,15 @@ function filterOuter(metadata, outerEdge, innerEdge) {
         return undefined;
     }
 
-    let innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-    let innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
-    let innerSrcData = yield exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch);
-    let innerDstData = yield exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch);
-    let outerSrcData = yield metadata.outer.getData(outerEdge.src);
-    let outerDstData = yield metadata.outer.getData(outerEdge.dst);
+    // check the matchers against data to make sure the edge is valid
+    // TODO these six values won't change while we run this algorithm
+    // - cache them in metadata?
+    const innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+    const innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+    const innerSrcData = yield exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch);
+    const innerDstData = yield exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch);
+    const outerSrcData = yield metadata.outer.getData(outerEdge.src);
+    const outerDstData = yield metadata.outer.getData(outerEdge.dst);
 
     // check transitionable
     if(!exports.units.vertexTransitionableAcceptable(
@@ -392,18 +401,29 @@ function filterOuter(metadata, outerEdge, innerEdge) {
   });
 }
 
-// the match data could be in a few places
+/**
+ * we need to find the match data since it could be in a few places
+ * this is thanks to match.options.pointer
+ * without pointers, it would just be the first return
+ *
+ * XXX rename getMatchData, it's kind of misleading; "matchData" means "match.data" and that's not what this does
+ */
 function getMatchData(metadata, vi_key, innerMatch) {
+  // if this is not a pointer, then we use the data at this vertex
+  // if it already is mapped, then use the data at this vertex
   if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
     return metadata.inner.getData(vi_key);
 
-  // if our inner graph has a value cached, use that
-  let data = metadata.inner.getData(innerMatch.data);
+  // if this is a pointer...
+  // (and doesn't have and idea mapped)
+
+  // if our inner graph has a value cached for the target, use that
+  let data = metadata.inner.getData(innerMatch.data); // FIXME this is a promise
   if(data)
     return data;
 
-  // if we have already mapped the vertex in question (the pointer target; match.data), then use the outer data
-  // (mapped, but the inner hasn't been updated with the idea)
+  // if we have already mapped the target vertex, then use the outer data
+  // (mapped, but the inner hasn't been updated with the idea data)
   // (note: we may not have mapped the pointer target by this point, and that's okay)
   let vo_key = metadata.vertexMap.get(innerMatch.data);
   if(vo_key)
@@ -420,6 +440,12 @@ function getMatchData(metadata, vi_key, innerMatch) {
  * if a vertex is not marked as transitionable
  * or if we are not checking unit only
  * then we need a harder check on the value
+ *
+ * XXX rename vertexFixedMatch; it's not very expressive; it contrasts 'vertexTransitionableAcceptable', but doesn't mean anything
+ *
+ * XXX I don't understand this function anymore
+ *  - review lime for reasons/examples
+ *  - make sure they make it into comments and tests
  */
 function vertexFixedMatch(innerData, innerMatch, outer, vo_key, unitsOnly) {
   if(unitsOnly || innerMatch.options.transitionable) return Promise.resolve(true);
