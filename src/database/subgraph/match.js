@@ -1,12 +1,16 @@
 'use strict';
 const _ = require('lodash');
+const bluebird = require('bluebird');
+const subgraph = require('../subgraph');
+// TODO review and add comments after done
+// TODO make sure all fns are called with exports.units.
 
 module.exports = exports = match;
 
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
-// exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata; // hooked up below the class
+// exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata; // hooked up below the class XXX will this ever be mocked? does it need to be
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
@@ -63,7 +67,7 @@ function recursiveMatch(metadata) {
 
   // pick the best inner edge
   // (this helps us reduce the number of branches)
-  var innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
+  let innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
     if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
       return curr;
     return prev;
@@ -80,8 +84,8 @@ function recursiveMatch(metadata) {
     // - deal with vertex.options.pointer
     // - otherwise return no match
     if(matches.length === 0) {
-      var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-      var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+      let innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+      let innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
 
       // because of indirection, we may need to skip an edge and try the next best one
       // so if our current edge uses inderection, and there are other edges to try, then, well, try again
@@ -227,7 +231,7 @@ function initializeVertexMap(outer, inner, unitsOnly) {
         outer.getData(vo_key),
         inner.getData(vi_key),
       ]).then(function([vo_data, vi_data]) {
-        let possible = vertexTransitionableAcceptable(
+        let possible = exports.units.vertexTransitionableAcceptable(
           outer.getMatch(vo_key).options.transitionable,
           vo_data,
           inner.getMatch(vi_key).options.transitionable,
@@ -326,47 +330,44 @@ function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitio
  * @param metadata
  * @param outerEdge
  * @param innerEdge
- * @return outerEdge if we should use outer edge to expand, undefined otherwise
- *  - this returns either promises or values
- *  - the calling function is expected to automatically convert the result to a promise
+ * @return outerEdge if we should use outer edge to expand, undefined otherwise, wrapped in a promise
  */
 function filterOuter(metadata, outerEdge, innerEdge) {
-  // skip the vertices that are mapped to something different
-  if(metadata.vertexMap.has(innerEdge.src)) {
-    if(metadata.vertexMap.get(innerEdge.src) !== outerEdge.src)
-      return undefined;
-  } else {
-    // outerEdge src is mapped to a different inner id
-    if(metadata.inverseMap.has(outerEdge.src))
-      return undefined;
-  }
-  if(metadata.vertexMap.has(innerEdge.dst)) {
-    if(metadata.vertexMap.get(innerEdge.dst) !== outerEdge.dst)
-      return undefined;
-  } else {
-    // outerEdge dst is mapped to a different inner id
-    if(metadata.inverseMap.has(outerEdge.dst))
-      return undefined;
-  }
+  return bluebird.coroutine(function*() {
+    // skip the vertices that are mapped to something different
+    if(metadata.vertexMap.has(innerEdge.src)) {
+      if(metadata.vertexMap.get(innerEdge.src) !== outerEdge.src)
+        return undefined;
+    } else {
+      // outerEdge src is mapped to a different inner id
+      if(metadata.inverseMap.has(outerEdge.src))
+        return undefined;
+    }
+    if(metadata.vertexMap.has(innerEdge.dst)) {
+      if(metadata.vertexMap.get(innerEdge.dst) !== outerEdge.dst)
+        return undefined;
+    } else {
+      // outerEdge dst is mapped to a different inner id
+      if(metadata.inverseMap.has(outerEdge.dst))
+        return undefined;
+    }
 
-  var innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-  var innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+    let innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
+    let innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
+    let innerSrcData = yield exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch);
+    let innerDstData = yield exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch);
+    let outerSrcData = yield metadata.outer.getData(outerEdge.src);
+    let outerDstData = yield metadata.outer.getData(outerEdge.dst);
 
-  return Promise.all([
-    exports.units.getMatchData(metadata, innerEdge.src, innerSrcMatch),
-    exports.units.getMatchData(metadata, innerEdge.dst, innerDstMatch),
-    metadata.outer.getData(outerEdge.src),
-    metadata.outer.getData(outerEdge.dst),
-  ]).then(function([innerSrcData, innerDstData, outerSrcData, outerDstData]) {
     // check transitionable
-    if(!vertexTransitionableAcceptable(
+    if(!exports.units.vertexTransitionableAcceptable(
         metadata.outer.getMatch(outerEdge.src).options.transitionable,
         outerSrcData,
         innerSrcMatch.options.transitionable,
         innerSrcData,
         metadata.unitsOnly))
       return undefined;
-    if(!vertexTransitionableAcceptable(
+    if(!exports.units.vertexTransitionableAcceptable(
         metadata.outer.getMatch(outerEdge.dst).options.transitionable,
         outerDstData,
         innerDstMatch.options.transitionable,
@@ -375,28 +376,68 @@ function filterOuter(metadata, outerEdge, innerEdge) {
       return undefined;
 
     // check non-transitionable
-    if(!metadata.inner.getIdea(innerEdge.src)) {
-      if(!vertexFixedMatch(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly))
+    if(!metadata.inner.hasIdea(innerEdge.src)) {
+      if(!(yield exports.units.vertexFixedMatch(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly)))
         return undefined;
     }
-    if(!metadata.inner.getIdea(innerEdge.dst)) {
-      if(!vertexFixedMatch(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly))
+    if(!metadata.inner.hasIdea(innerEdge.dst)) {
+      if(!(yield exports.units.vertexFixedMatch(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly)))
         return undefined;
     }
 
     return outerEdge;
-  }, function() {
+  })().catch(function() {
     // if there was a problem, just count it as a miss
     return undefined;
   });
-
 }
 
-function getMatchData() {
-  // FIXME finish
+// the match data could be in a few places
+function getMatchData(metadata, vi_key, innerMatch) {
+  if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
+    return metadata.inner.getData(vi_key);
+
+  // if our inner graph has a value cached, use that
+  let data = metadata.inner.getData(innerMatch.data);
+  if(data)
+    return data;
+
+  // if we have already mapped the vertex in question (the pointer target; match.data), then use the outer data
+  // (mapped, but the inner hasn't been updated with the idea)
+  // (note: we may not have mapped the pointer target by this point, and that's okay)
+  let vo_key = metadata.vertexMap.get(innerMatch.data);
+  if(vo_key)
+    return metadata.outer.getData(vo_key);
+
+  // we can't find data to use (this is okay)
+  return Promise.resolve(null);
 }
 
-function vertexFixedMatch() {
-  // FIXME finish
-  // TODO rename
+/**
+ * check the matcher function against the outer data
+ * this should only be called if the inner idea has not been identified
+ *
+ * if a vertex is not marked as transitionable
+ * or if we are not checking unit only
+ * then we need a harder check on the value
+ */
+function vertexFixedMatch(innerData, innerMatch, outer, vo_key, unitsOnly) {
+  if(unitsOnly || innerMatch.options.transitionable) return Promise.resolve(true);
+
+  // if pointer, then we want to use the data we found as the matcher data
+  // if !pointer, then we need to use the match.data on the object
+  // this will also correct for subgraph.matcher.id
+  if(!innerMatch.options.pointer)
+    innerData = innerMatch.data;
+
+  // outer data is simple since it's concerete
+  let outerData;
+  if(innerMatch.matcher === subgraph.matcher.id)
+    outerData = Promise.resolve(outer.getIdea(vo_key));
+  else
+    outerData = outer.getData(vo_key);
+
+  return outerData.then(function() {
+    return innerMatch.matcher(outerData, innerData);
+  });
 }
