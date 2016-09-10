@@ -228,6 +228,68 @@ describe('subgraph', function() {
       }));
     }); // end getData
 
-    it.skip('vertexFixedMatch'); // end vertexFixedMatch
+    describe('runMatchersOnVertices', function() {
+      const innerData = 'some inner data';
+      const innerMatch = { data: 'inner match data', options: {} };
+      const outer = {};
+      const vo_key = {};
+      const unitsOnly = false;
+      beforeEach(function() {
+        void(innerData, innerMatch, outer, vo_key, unitsOnly);
+
+        outer.getIdea = sinon.stub().returns('some id');
+        outer.getData = sinon.stub().returns(Promise.resolve('some outer data'));
+        innerMatch.options.transitionable = false;
+        innerMatch.matcher = sinon.stub().returns('matcher fn');
+      });
+
+      it('not handled here: units', function() {
+        return subgraph.match.units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, true).then(function(result) {
+          expect(result).to.equal(true);
+          expect(innerMatch.matcher).to.have.callCount(0);
+        });
+      });
+
+      it('not handled here: transitionable', function() {
+        innerMatch.options.transitionable = true;
+        return subgraph.match.units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+          expect(result).to.equal(true);
+          expect(innerMatch.matcher).to.have.callCount(0);
+        });
+      });
+
+      it('is a pointer', function() {
+        innerMatch.options.pointer = true;
+        return subgraph.match.units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+          expect(result).to.equal('matcher fn');
+          expect(innerMatch.matcher).to.have.callCount(1);
+          // test for innerData
+          expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer data', 'some inner data');
+        });
+      });
+
+      it('not a pointer', function() {
+        innerMatch.options.pointer = false;
+        return subgraph.match.units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+          expect(result).to.equal('matcher fn');
+          expect(innerMatch.matcher).to.have.callCount(1);
+          // test for innerData
+          expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer data', 'inner match data');
+        });
+      });
+
+      it('id matcher', function() {
+        sinon.stub(subgraph.matcher, 'id');
+        innerMatch.matcher = subgraph.matcher.id;
+        innerMatch.matcher.returns('stubbed result');
+        return subgraph.match.units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+          expect(result).to.equal('stubbed result');
+          expect(innerMatch.matcher).to.have.callCount(1);
+          // test for outerData
+          expect(innerMatch.matcher).to.have.been.calledWithExactly('some id', 'inner match data');
+          subgraph.matcher.id.restore();
+        });
+      });
+    }); // end runMatchersOnVertices
   }); // end match
 }); // end subgraph

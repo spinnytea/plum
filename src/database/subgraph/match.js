@@ -14,7 +14,7 @@ exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.filterOuter = filterOuter;
 exports.units.getData = getData;
-exports.units.vertexFixedMatch = vertexFixedMatch;
+exports.units.runMatchersOnVertices = runMatchersOnVertices;
 
 /**
  * find a list of ways to map the inner subgraph onto the outer subgraph
@@ -390,11 +390,11 @@ function filterOuter(metadata, outerEdge, innerEdge) {
 
     // check non-transitionable
     if(!metadata.inner.hasIdea(innerEdge.src)) {
-      if(!(yield exports.units.vertexFixedMatch(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly)))
+      if(!(yield exports.units.runMatchersOnVertices(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly)))
         return undefined;
     }
     if(!metadata.inner.hasIdea(innerEdge.dst)) {
-      if(!(yield exports.units.vertexFixedMatch(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly)))
+      if(!(yield exports.units.runMatchersOnVertices(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly)))
         return undefined;
     }
 
@@ -445,18 +445,17 @@ function getData(metadata, vi_key, innerMatch) {
 /**
  * check the matcher function against the outer data
  * this should only be called if the inner idea has not been identified
+ * (because matchers are used for identifying the ideas; ones ideas have been identified, the matchers don't make sense anymore)
+ * (matchers are for the identification phase; once we have ideas, then we are in an imagination phase)
  *
  * if a vertex is not marked as transitionable
  * or if we are not checking unit only
  * then we need a harder check on the value
  *
- * XXX rename vertexFixedMatch; it's not very expressive; it contrasts 'vertexTransitionableAcceptable', but doesn't mean anything
- *
- * XXX I don't understand this function anymore
- *  - review lime for reasons/examples
- *  - make sure they make it into comments and tests
+ * XXX rename runMatchersOnVertices; it may be too verbose
  */
-function vertexFixedMatch(innerData, innerMatch, outer, vo_key, unitsOnly) {
+function runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly) {
+  // these cases are handled by vertexTransitionableAcceptable
   if(unitsOnly || innerMatch.options.transitionable) return Promise.resolve(true);
 
   // if pointer, then we want to use the data we found as the matcher data
@@ -472,7 +471,7 @@ function vertexFixedMatch(innerData, innerMatch, outer, vo_key, unitsOnly) {
   else
     outerData = outer.getData(vo_key);
 
-  return outerData.then(function() {
+  return outerData.then(function(outerData) {
     return innerMatch.matcher(outerData, innerData);
   });
 }
