@@ -14,8 +14,8 @@ exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.filterOuter = filterOuter;
 exports.units.getData = getData;
 exports.units.checkVertexData = checkVertexData;
-exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
-exports.units.runMatchersOnVertices = runMatchersOnVertices;
+exports.units.checkTransitionableVertexData = checkTransitionableVertexData;
+exports.units.checkFixedVertexData = checkFixedVertexData;
 
 /**
  * find a list of ways to map the inner subgraph onto the outer subgraph
@@ -73,6 +73,7 @@ function recursiveMatch(metadata) {
   // pick the best inner edge
   // (this helps us reduce the number of branches)
   const innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
+    // XXX should we only skip if the target isn't mapped? if so, then do we need 'skipThisTime'?
     if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
       return curr;
     return prev;
@@ -95,6 +96,7 @@ function recursiveMatch(metadata) {
       // because of indirection, we may need to skip an edge and try the next best one
       // so if our current edge uses inderection, and there are other edges to try, then, well, try again
       // but next time, don't consider this edge
+      // XXX should we only skip if the target isn't mapped?
       if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
         metadata.skipThisTime.push(innerEdge);
         return exports.units.recursiveMatch(metadata);
@@ -346,7 +348,7 @@ function getData(metadata, vi_key, innerMatch) {
     // (and doesn't have and idea mapped)
 
     // if our inner graph has a value cached for the target, use that
-    let data = yield metadata.inner.getData(innerMatch.data); // FIXME this is a promise
+    let data = yield metadata.inner.getData(innerMatch.data);
     if(data)
       return data;
 
@@ -365,111 +367,96 @@ function getData(metadata, vi_key, innerMatch) {
 /**
  * check the matchers against data to make sure the edge is valid
  *
- * vertexTransitionableAcceptable and runMatchersOnVertices are two sides of the same coin
+ * checkTransitionableVertexData and checkFixedVertexData are two sides of the same coin
  * one checks transitionable verticies, the other checks non-transitionable vertices
  * this just decides which one to call
- *
- * TODO test and use
  */
 function checkVertexData(metadata, vi_key, vo_key) {
-  return bluebird.coroutine(function*() {
-    // TODO these values won't change while we run this algorithm
-    // - cache them in metadata?
-    const innerMatch = metadata.inner.getMatch(vi_key);
-    const innerData = yield exports.units.getData(metadata, vi_key, innerMatch);
-    const outerData = yield metadata.outer.getData(vo_key);
-
-    // check transitionable
-    if(!exports.units.vertexTransitionableAcceptable(
-        metadata.outer.getMatch(vo_key).options.transitionable,
-        outerData,
-        innerMatch.options.transitionable,
-        innerData,
-        metadata.unitsOnly))
-      return false;
-
-    // check non-transitionable
-    if(!metadata.inner.hasIdea(vi_key)) {
-      if(!(yield exports.units.runMatchersOnVertices(innerData, innerMatch, metadata.outer, vo_key, metadata.unitsOnly)))
-        return false;
-    }
-
-    return true;
-  })();
+  return Promise.resolve([
+    exports.units.checkTransitionableVertexData(metadata, vi_key, vo_key),
+    exports.units.checkFixedVertexData(metadata, vi_key, vo_key),
+  ]).then(function([trans, fixed]) {
+    return (trans && fixed);
+  });
 }
 
 /**
  * this function checks transitionable vertices to see if a transition is possible
  * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
- *
- * XXX rename vertexTransitionableAcceptable
  */
-function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitsOnly) {
-  // if the inner isn't transitionable, then we don't need to check anything
-  if(!vi_transitionable) return true;
-  // the outer must be transitionable, otherwise it's a config/matcher problem
-  // the outer subgraph defines up front what values it expects to change
-  if(!vo_transitionable) return false;
+function checkTransitionableVertexData(metadata, vi_key, vo_key) {
+  return bluebird.coroutine(function*() {
+    const innerMatch = metadata.inner.getMatch(vi_key);
 
-  // make sure we have data to work with
-  if(!vo_data) return true;
-  if(!vi_data) return true;
+    // if the inner isn't transitionable, then we don't need to check anything
+    if(!innerMatch.options.transitionable) return true;
+    // the outer must be transitionable, otherwise it's a config/matcher problem
+    // the outer subgraph defines up front what values it expects to change
+    if(!metadata.outer.getMatch(vo_key).options.transitionable) return false;
 
-  // this might be pedantic, but it'll make thing easier later
-  // they must either both HAVE or NOT HAVE a unit
-  if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
+    // make sure we have data to work with
+    const vo_data = yield metadata.outer.getData(vo_key);
+    if(!vo_data) return true;
+    const vi_data = yield exports.units.getData(metadata, vi_key, innerMatch);
+    if(!vi_data) return true;
 
-  if(unitsOnly) {
-    // TODO what does this mean? unit only but no units
-    // - unit only is a core part of the planning for things like distance
-    // - units are how we reason about the distance and how it will relate to other unit distances
-    //   (like how does 2 meters and 10 centimeters relate to one another?)
-    // - this 'transitionable' FORCE the data to have units? of not, then how do we measure distance?
-    // - this is a problem will will crop up in astar and planning; this unitsOnly path is specifically designed for it
-    if(!vo_data.hasOwnProperty('unit')) return false;
+    // this might be pedantic, but it'll make thing easier later
+    // they must either both HAVE or NOT HAVE a unit
+    if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
 
-    // match the units
-    return vo_data.unit === vi_data.unit;
-  } else {
-    // XXX we need a distance function for each kind of unit, use that instead
-    return _.isEqual(vo_data, vi_data);
-  }
+    if(metadata.unitsOnly) {
+      // TODO what does this mean? unit only but no units
+      // - unit only is a core part of the planning for things like distance
+      // - units are how we reason about the distance and how it will relate to other unit distances
+      //   (like how does 2 meters and 10 centimeters relate to one another?)
+      // - this 'transitionable' FORCE the data to have units? of not, then how do we measure distance?
+      // - this is a problem will will crop up in astar and planning; this unitsOnly path is specifically designed for it
+      if(!vo_data.hasOwnProperty('unit')) return false;
+
+      // match the units
+      return vo_data.unit === vi_data.unit;
+    } else {
+      // XXX we need a distance function for each kind of unit, use that instead
+      return _.isEqual(vo_data, vi_data);
+    }
+  })();
 }
 
 /**
  * check the matcher function against the outer data
- * this should only be called if the inner idea has not been identified
- * (because matchers are used for identifying the ideas; ones ideas have been identified, the matchers don't make sense anymore)
- * (matchers are for the identification phase; once we have ideas, then we are in an imagination phase)
- * TODO if this prereq is so important, then move it into here
- *  - it's not here because we can't derive it from the arguments
- *  - the arguments were chosen because they are reusable between runMatchersOnVertices and vertexTransitionableAcceptable
- *  - sounds like we need another function that will call both ... OR THAT WILL CALL EITHER AS NEEDED
  *
  * if a vertex is not marked as transitionable
  * or if we are not checking unit only
  * then we need a harder check on the value
- *
- * XXX rename runMatchersOnVertices; it may be too verbose
  */
-function runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly) {
-  // these cases are handled by vertexTransitionableAcceptable
-  if(unitsOnly || innerMatch.options.transitionable) return Promise.resolve(true);
+function checkFixedVertexData(metadata, vi_key, vo_key) {
+  return bluebird.coroutine(function*() {
+    // only necessary to check when the inner idea has not been identified
+    // because matchers are used for identifying the ideas; ones ideas have been identified, the matchers don't make sense anymore
+    // matchers are for the identification phase; once we have ideas, then we are in an imagination phase
+    if(metadata.inner.hasIdea(vi_key)) return true;
 
-  // if pointer, then we want to use the data we found as the matcher data
-  // if !pointer, then we need to use the match.data on the object
-  // this will also correct for subgraph.matcher.id
-  if(!innerMatch.options.pointer)
-    innerData = innerMatch.data;
+    const innerMatch = metadata.inner.getMatch(vi_key);
 
-  // outer data is simple since it's concerete
-  let outerData;
-  if(innerMatch.matcher === subgraph.matcher.id)
-    outerData = Promise.resolve(outer.getIdea(vo_key));
-  else
-    outerData = outer.getData(vo_key);
+    // these cases are handled by checkTransitionableVertexData
+    if(metadata.unitsOnly || innerMatch.options.transitionable) return true;
 
-  return outerData.then(function(outerData) {
+    // if pointer, then we want to use the data we found as the matcher data
+    // if !pointer, then we need to use the match.data on the object
+    // this will also correct for subgraph.matcher.id
+    let innerData;
+    if(innerMatch.options.pointer)
+      innerData = yield exports.units.getData(metadata, vi_key, innerMatch);
+    else
+      innerData = innerMatch.data;
+
+    // outer data is simple since it's concerete
+    let outerData;
+    if(innerMatch.matcher === subgraph.matcher.id)
+      outerData = yield metadata.outer.getIdea(vo_key);
+    else
+      outerData = metadata.outer.getData(vo_key);
+
     return innerMatch.matcher(outerData, innerData);
-  });
+  })();
 }

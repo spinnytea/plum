@@ -80,7 +80,7 @@ gulp.task('testcd', [], function() {
   gulp.start('coverage');
 });
 
-gulp.task('unitc', ['lint'], function (cb) {
+gulp.task('coverage-unit', ['lint'], function (cb) {
   gulp.src(source)
     .pipe(istanbul({ includeUntested: true })) // Covering files
     .pipe(istanbul.hookRequire()) // Force `require` to return covered files

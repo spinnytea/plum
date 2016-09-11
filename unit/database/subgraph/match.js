@@ -173,7 +173,7 @@ describe('subgraph', function() {
 
     it.skip('checkVertexData'); // end checkVertexData
 
-    describe('vertexTransitionableAcceptable', function() {
+    describe.skip('vertexTransitionableAcceptable', function() {
       let vo_data;
       let vi_data;
       let unitsOnly;
@@ -244,7 +244,7 @@ describe('subgraph', function() {
       });
     }); // end vertexTransitionableAcceptable
 
-    describe('runMatchersOnVertices', function() {
+    describe.skip('runMatchersOnVertices', function() {
       const innerData = 'some inner data';
       const innerMatch = { data: 'inner match data', options: {} };
       const outer = {};
