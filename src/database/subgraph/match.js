@@ -11,9 +11,10 @@ exports.units.recursiveMatch = recursiveMatch;
 // exports.units.SubgraphMatchMetadata = SubgraphMatchMetadata; // hooked up below the class XXX will this ever be mocked? does it need to be
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
-exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.filterOuter = filterOuter;
 exports.units.getData = getData;
+exports.units.checkVertexData = checkVertexData;
+exports.units.vertexTransitionableAcceptable = vertexTransitionableAcceptable;
 exports.units.runMatchersOnVertices = runMatchersOnVertices;
 
 /**
@@ -237,22 +238,24 @@ function initializeVertexMap(outer, inner, unitsOnly) {
         outer.getData(vo_key),
         inner.getData(vi_key),
       ]).then(function([vo_data, vi_data]) {
-        let possible = exports.units.vertexTransitionableAcceptable(
+        return exports.units.vertexTransitionableAcceptable(
           outer.getMatch(vo_key).options.transitionable,
           vo_data,
           inner.getMatch(vi_key).options.transitionable,
           vi_data,
           unitsOnly);
 
-        if(!possible)
-          return Promise.reject();
+        // TODO runMatchersOnVertices; no wait, a wrapper function
+        // - it all checks out
+        // - we call inner.getData here because it's a first check in exports.units.getData
+        // - the function should be something like "does the outer and inner vertex data match"
       }));
     }
   });
 
-  return Promise.all(promises).then(function() {
-    return vertexMap;
-  }, function() {
+  return Promise.all(promises).then(function(possible) {
+    if(possible.every(_.identity))
+      return vertexMap;
     return undefined;
   });
 }
@@ -294,42 +297,6 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
       outerIdeas.forEach(function(vo_idea, vo_key) { if(id === vo_idea.id) found = vo_key; });
       return found;
     };
-  }
-}
-
-/**
- * this function checks transitionable vertices to see if a transition is possible
- * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
- */
-function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitsOnly) {
-  // if the inner isn't transitionable, then we don't need to check anything
-  if(!vi_transitionable) return true;
-  // the outer must be transitionable, otherwise it's a config/matcher problem
-  // the outer subgraph defines up front what values it expects to change
-  if(!vo_transitionable) return false;
-
-  // make sure we have data to work with
-  if(!vo_data) return true;
-  if(!vi_data) return true;
-
-  // this might be pedantic, but it'll make thing easier later
-  // they must either both HAVE or NOT HAVE a unit
-  if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
-
-  if(unitsOnly) {
-    // TODO what does this mean? unit only but no units
-    // - unit only is a core part of the planning for things like distance
-    // - units are how we reason about the distance and how it will relate to other unit distances
-    //   (like how does 2 meters and 10 centimeters relate to one another?)
-    // - this 'transitionable' FORCE the data to have units? of not, then how do we measure distance?
-    // - this is a problem will will crop up in astar and planning; this unitsOnly path is specifically designed for it
-    if(!vo_data.hasOwnProperty('unit')) return false;
-
-    // match the units
-    return vo_data.unit === vi_data.unit;
-  } else {
-    // XXX we need a distance function for each kind of unit, use that instead
-    return _.isEqual(vo_data, vi_data);
   }
 }
 
@@ -399,10 +366,7 @@ function filterOuter(metadata, outerEdge, innerEdge) {
     }
 
     return outerEdge;
-  })().catch(function() {
-    // if there was a problem, just count it as a miss
-    return undefined;
-  });
+  })();
 }
 
 /**
@@ -443,10 +407,88 @@ function getData(metadata, vi_key, innerMatch) {
 }
 
 /**
+ * check the matchers against data to make sure the edge is valid
+ *
+ * vertexTransitionableAcceptable and runMatchersOnVertices are two sides of the same coin
+ * one checks transitionable verticies, the other checks non-transitionable vertices
+ * this just decides which one to call
+ *
+ * TODO test and use
+ */
+function checkVertexData(metadata, vi_key, vo_key) {
+  return bluebird.coroutine(function*() {
+    // TODO these six values won't change while we run this algorithm
+    // - cache them in metadata?
+    const innerMatch = metadata.inner.getMatch(vi_key);
+    const innerData = yield exports.units.getData(metadata, vi_key, innerMatch);
+    const outerData = yield metadata.outer.getData(vo_key);
+
+    // check transitionable
+    if(!exports.units.vertexTransitionableAcceptable(
+        metadata.outer.getMatch(vo_key).options.transitionable,
+        outerData,
+        innerMatch.options.transitionable,
+        innerData,
+        metadata.unitsOnly))
+      return false;
+
+    // check non-transitionable
+    if(!metadata.inner.hasIdea(vi_key)) {
+      if(!(yield exports.units.runMatchersOnVertices(innerData, innerMatch, metadata.outer, vo_key, metadata.unitsOnly)))
+        return false;
+    }
+
+    return true;
+  })();
+}
+
+/**
+ * this function checks transitionable vertices to see if a transition is possible
+ * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
+ *
+ * XXX rename vertexTransitionableAcceptable
+ */
+function vertexTransitionableAcceptable(vo_transitionable, vo_data, vi_transitionable, vi_data, unitsOnly) {
+  // if the inner isn't transitionable, then we don't need to check anything
+  if(!vi_transitionable) return true;
+  // the outer must be transitionable, otherwise it's a config/matcher problem
+  // the outer subgraph defines up front what values it expects to change
+  if(!vo_transitionable) return false;
+
+  // make sure we have data to work with
+  if(!vo_data) return true;
+  if(!vi_data) return true;
+
+  // this might be pedantic, but it'll make thing easier later
+  // they must either both HAVE or NOT HAVE a unit
+  if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
+
+  if(unitsOnly) {
+    // TODO what does this mean? unit only but no units
+    // - unit only is a core part of the planning for things like distance
+    // - units are how we reason about the distance and how it will relate to other unit distances
+    //   (like how does 2 meters and 10 centimeters relate to one another?)
+    // - this 'transitionable' FORCE the data to have units? of not, then how do we measure distance?
+    // - this is a problem will will crop up in astar and planning; this unitsOnly path is specifically designed for it
+    if(!vo_data.hasOwnProperty('unit')) return false;
+
+    // match the units
+    return vo_data.unit === vi_data.unit;
+  } else {
+    // XXX we need a distance function for each kind of unit, use that instead
+    return _.isEqual(vo_data, vi_data);
+  }
+}
+
+/**
  * check the matcher function against the outer data
  * this should only be called if the inner idea has not been identified
  * (because matchers are used for identifying the ideas; ones ideas have been identified, the matchers don't make sense anymore)
  * (matchers are for the identification phase; once we have ideas, then we are in an imagination phase)
+ * TODO if this prereq is so important, then move it into here
+ *  - it's not here because we can't derive it from the arguments
+ *  - the arguments were chosen because they are reusable between runMatchersOnVertices and vertexTransitionableAcceptable
+ *  - sounds like we need another function that will call both ... OR THAT WILL CALL EITHER AS NEEDED
  *
  * if a vertex is not marked as transitionable
  * or if we are not checking unit only
