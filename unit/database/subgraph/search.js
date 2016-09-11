@@ -53,8 +53,8 @@ describe('subgraph', function() {
       _.values(data).forEach(ideas.delete);
     });
     
-    // spy on the functions
     beforeEach(function() {
+      // spy on the functions
       _.keys(subgraph.search.units).forEach(function(name) {
         subgraph.search.units[name] = sinon.stub();
       });

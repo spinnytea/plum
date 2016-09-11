@@ -228,28 +228,13 @@ function initializeVertexMap(outer, inner, unitsOnly) {
 
   // innerIdeas is a map, not a list, so there is no map function
   const promises = [];
+  // checkVertexData expects a metadata object; these are the only values it uses
+  const meta = { outer: outer, inner: inner, unitsOnly: unitsOnly };
   innerIdeas.forEach(function(vi_idea, vi_key) {
     const vo_key = getOuterVertexId(vi_idea.id);
     if(vo_key) {
       vertexMap.set(vi_key, vo_key);
-
-      // vi.idea has been identified so we can use vi.data directly
-      promises.push(Promise.all([
-        outer.getData(vo_key),
-        inner.getData(vi_key),
-      ]).then(function([vo_data, vi_data]) {
-        return exports.units.vertexTransitionableAcceptable(
-          outer.getMatch(vo_key).options.transitionable,
-          vo_data,
-          inner.getMatch(vi_key).options.transitionable,
-          vi_data,
-          unitsOnly);
-
-        // TODO runMatchersOnVertices; no wait, a wrapper function
-        // - it all checks out
-        // - we call inner.getData here because it's a first check in exports.units.getData
-        // - the function should be something like "does the outer and inner vertex data match"
-      }));
+      promises.push(exports.units.checkVertexData(meta, vi_key, vo_key));
     }
   });
 
@@ -311,6 +296,8 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
  */
 function filterOuter(metadata, outerEdge, innerEdge) {
   return bluebird.coroutine(function*() {
+    // TODO should this check also occur in the initializeVertexMap
+    // - move to checkVertexData?
     // skip the vertices that are mapped to something different
     if(metadata.vertexMap.has(innerEdge.src)) {
       if(metadata.vertexMap.get(innerEdge.src) !== outerEdge.src)
@@ -329,43 +316,12 @@ function filterOuter(metadata, outerEdge, innerEdge) {
         return undefined;
     }
 
-    // check the matchers against data to make sure the edge is valid
-    // TODO these six values won't change while we run this algorithm
-    // - cache them in metadata?
-    const innerSrcMatch = metadata.inner.getMatch(innerEdge.src);
-    const innerDstMatch = metadata.inner.getMatch(innerEdge.dst);
-    const innerSrcData = yield exports.units.getData(metadata, innerEdge.src, innerSrcMatch);
-    const innerDstData = yield exports.units.getData(metadata, innerEdge.dst, innerDstMatch);
-    const outerSrcData = yield metadata.outer.getData(outerEdge.src);
-    const outerDstData = yield metadata.outer.getData(outerEdge.dst);
+    const srcPossible = yield exports.units.checkVertexData(metadata, innerEdge.src, outerEdge.src);
+    const dstPossible = yield exports.units.checkVertexData(metadata, innerEdge.dst, outerEdge.dst);
 
-    // check transitionable
-    if(!exports.units.vertexTransitionableAcceptable(
-        metadata.outer.getMatch(outerEdge.src).options.transitionable,
-        outerSrcData,
-        innerSrcMatch.options.transitionable,
-        innerSrcData,
-        metadata.unitsOnly))
-      return undefined;
-    if(!exports.units.vertexTransitionableAcceptable(
-        metadata.outer.getMatch(outerEdge.dst).options.transitionable,
-        outerDstData,
-        innerDstMatch.options.transitionable,
-        innerDstData,
-        metadata.unitsOnly))
-      return undefined;
-
-    // check non-transitionable
-    if(!metadata.inner.hasIdea(innerEdge.src)) {
-      if(!(yield exports.units.runMatchersOnVertices(innerSrcData, innerSrcMatch, metadata.outer, outerEdge.src, metadata.unitsOnly)))
-        return undefined;
-    }
-    if(!metadata.inner.hasIdea(innerEdge.dst)) {
-      if(!(yield exports.units.runMatchersOnVertices(innerDstData, innerDstMatch, metadata.outer, outerEdge.dst, metadata.unitsOnly)))
-        return undefined;
-    }
-
-    return outerEdge;
+    if(srcPossible && dstPossible)
+      return outerEdge;
+    return undefined;
   })();
 }
 
@@ -417,7 +373,7 @@ function getData(metadata, vi_key, innerMatch) {
  */
 function checkVertexData(metadata, vi_key, vo_key) {
   return bluebird.coroutine(function*() {
-    // TODO these six values won't change while we run this algorithm
+    // TODO these values won't change while we run this algorithm
     // - cache them in metadata?
     const innerMatch = metadata.inner.getMatch(vi_key);
     const innerData = yield exports.units.getData(metadata, vi_key, innerMatch);
