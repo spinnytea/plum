@@ -18,6 +18,8 @@ let saveFn = memorySave;
 /**
  * this is the singleton that we will keep an internal reference to
  * it's basically just a named structure
+ *
+ * TODO put in own file
  */
 class CoreIdea {
   constructor(id, data, links) {
@@ -33,6 +35,8 @@ class CoreIdea {
  * essentially, its just an object { id: 'x' }
  * we can JSON.stringify; we can exports.proxy
  * The functions that are on ProxyIdea reference a singleton that stores the data
+ *
+ * TODO put in own file
  */
 class ProxyIdea {
   constructor(id) { this.id = id; }

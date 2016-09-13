@@ -6,6 +6,7 @@ const subgraph = require('../subgraph');
 
 module.exports = exports = search;
 
+// TODO does this need boundaries, like ideas?
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.search = search;
 exports.units.recursiveSearch = recursiveSearch;
