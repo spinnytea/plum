@@ -29,7 +29,60 @@ describe('subgraph', function() {
 
     it.skip('SubgraphMatchMetadata'); // end SubgraphMatchMetadata
 
-    it.skip('initializeVertexMap'); // end initializeVertexMap
+    describe('initializeVertexMap', function() {
+      const outer = {};
+      const inner = {};
+      const unitsOnly = false;
+
+      const vi_key = 'some inner id';
+      const vo_key = 'some outer id';
+      const vi_idea = { id: 'some idea' };
+      beforeEach(function() {
+        inner.allIdeas = ()=>(new Map());
+        outer.allIdeas = ()=>(new Map());
+      });
+
+      it('no inner ideas', function() {
+        return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
+          expect(result).to.not.equal(undefined);
+          expect(_.isMap(result)).to.equal(true);
+          expect(result.size).to.equal(0);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(0);
+        });
+      });
+
+      it('no outer ideas', function() {
+        inner.allIdeas = ()=>(new Map([[vi_key, vi_idea]]));
+        subgraph.match.units.getOuterVertexIdFn.returns(()=>(undefined));
+        return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
+          expect(result).to.equal(undefined);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(0);
+        });
+      });
+
+      it('possible', function() {
+        inner.allIdeas = ()=>(new Map([[vi_key, vi_idea]]));
+        subgraph.match.units.getOuterVertexIdFn.returns(()=>(vo_key));
+        subgraph.match.units.checkVertexData.returns(Promise.resolve(true));
+        return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
+          expect(result).to.not.equal(undefined);
+          expect(_.isMap(result)).to.equal(true);
+          expect(result.size).to.equal(1);
+          expect(result.get(vi_key)).to.equal(vo_key);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(1);
+        });
+      });
+
+      it('not possible', function() {
+        inner.allIdeas = ()=>(new Map([[vi_key, vi_idea]]));
+        subgraph.match.units.getOuterVertexIdFn.returns(()=>(vo_key));
+        subgraph.match.units.checkVertexData.returns(Promise.resolve(false));
+        return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
+          expect(result).to.equal(undefined);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(1);
+        });
+      });
+    }); // end initializeVertexMap
 
     describe('getOuterVertexIdFn', function() {
       function addData(map, i) { map.set(i, { id: (i+256).toString(16) }); }
@@ -91,7 +144,27 @@ describe('subgraph', function() {
       });
     }); // end getOuterVertexIdFn
 
-    it.skip('filterOuter'); // end filterOuter
+    describe('filterOuter', function() {
+      const meta = {};
+      const innerEdge = { id: 0 };
+      const outerEdge = { id: 1 };
+
+      it('possible', function() {
+        subgraph.match.units.checkVertexData.returns(Promise.resolve(true));
+        return units.filterOuter(meta, innerEdge, outerEdge).then(function(result) {
+          expect(result).to.equal(outerEdge);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(2);
+        });
+      });
+
+      it('not possible', function() {
+        subgraph.match.units.checkVertexData.returns(Promise.resolve(false));
+        return units.filterOuter(meta, innerEdge, outerEdge).then(function(result) {
+          expect(result).to.equal(undefined);
+          expect(subgraph.match.units.checkVertexData).to.have.callCount(2);
+        });
+      });
+    }); // end filterOuter
 
     describe('getData', function() {
       // XXX do I setup a subgraph or mock a subgraph

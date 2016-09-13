@@ -81,7 +81,7 @@ function recursiveMatch(metadata) {
 
   // find all matching outer edges
   return Promise.all(metadata.getOuterEdges(innerEdge).map(function(outerEdge) {
-    return exports.units.filterOuter(metadata, outerEdge, innerEdge);
+    return exports.units.filterOuter(metadata, innerEdge, outerEdge);
   })).then(function(matches) {
     // clear the list of unmatched edges
     return matches.filter(_.identity);
@@ -203,6 +203,8 @@ class SubgraphMatchMetadata {
     _.pull(this.innerEdges, innerEdge);
   }
   removeOuterEdge(outerEdge) {
+    // TODO it would be more efficient to keep the list and build an inverse edge map
+    // - we need to clone the inverse edge map instead of deep cloning outerEdges
     _.pull(this.outerEdges.get(outerEdge.link.name), outerEdge);
   }
   updateVertexMap(innerEdge, outerEdge) {
@@ -237,6 +239,10 @@ function initializeVertexMap(outer, inner, unitsOnly) {
     if(vo_key) {
       vertexMap.set(vi_key, vo_key);
       promises.push(exports.units.checkVertexData(meta, vi_key, vo_key));
+    } else {
+      // if inner has been mapped to something that doesn't exist in outer
+      // then this cannot be reconciled
+      promises.push(false);
     }
   });
 
@@ -290,15 +296,15 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
 /**
  * check to see if the outer edge is a good match for the inner edge
  *
- * @prereq: outerEdge.link === innerEdge.link
+ * @prereq: outerEdge.link === innerEdge.link (handled by grouping outer by type)
+ * @prereq: outerEdge has not already been mapped (handled by removing outer from pool when matched)
  * @param metadata
  * @param outerEdge
  * @param innerEdge
  * @return outerEdge if we should use outer edge to expand, undefined otherwise, wrapped in a promise
  */
-function filterOuter(metadata, outerEdge, innerEdge) {
-  // TODO what about edge matching? we need to ensure the outer edge isn't already matched to another inner edge
-  return Promise.resolve([
+function filterOuter(metadata, innerEdge, outerEdge) {
+  return Promise.all([
     exports.units.checkVertexData(metadata, innerEdge.src, outerEdge.src),
     exports.units.checkVertexData(metadata, innerEdge.dst, outerEdge.dst),
   ]).then(function([srcPossible, dstPossible]) {
