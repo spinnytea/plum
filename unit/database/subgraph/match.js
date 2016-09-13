@@ -29,9 +29,6 @@ describe('subgraph', function() {
 
     it.skip('SubgraphMatchMetadata'); // end SubgraphMatchMetadata
 
-    // XXX test many inner to same outer
-    // XXX test same inner to many outer
-    // XXX test one or two times without stubs
     it.skip('initializeVertexMap'); // end initializeVertexMap
 
     describe('getOuterVertexIdFn', function() {
@@ -176,7 +173,76 @@ describe('subgraph', function() {
       }));
     }); // end getData
 
-    it.skip('checkVertexData'); // end checkVertexData
+    // this is mostly integration stuff
+    describe('checkVertexData', function() {
+      const vi_key = 'some inner key';
+      const vo_key = 'some outer key';
+      const other_key = 'another vertex id';
+      const meta = {};
+      beforeEach(function() {
+        subgraph.match.units.checkTransitionableVertexData.returns(Promise.resolve(true));
+        subgraph.match.units.checkFixedVertexData.returns(Promise.resolve(true));
+
+        meta.vertexMap = new Map();
+        meta.inverseMap = new Map();
+      });
+
+      it('mapped', function() {
+        meta.vertexMap.set(vi_key, vo_key);
+        meta.inverseMap.set(vo_key, vi_key);
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(1);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(1);
+        });
+      });
+
+      it('unmapped', function() {
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(1);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(1);
+        });
+      });
+
+      it('inner somewhere else', function() {
+        meta.vertexMap.set(vi_key, other_key);
+        meta.inverseMap.set(other_key, vi_key);
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(false);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(0);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(0);
+        });
+      });
+
+      it('outer somewhere else', function() {
+        meta.vertexMap.set(other_key, vo_key);
+        meta.inverseMap.set(vo_key, other_key);
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(false);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(0);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(0);
+        });
+      });
+
+      it('possible', function() {
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(1);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(1);
+        });
+      });
+
+      it('not possible', function() {
+        subgraph.match.units.checkTransitionableVertexData.returns(Promise.resolve(false));
+        subgraph.match.units.checkFixedVertexData.returns(Promise.resolve(false));
+        return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(false);
+          expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(1);
+          expect(subgraph.match.units.checkFixedVertexData).to.have.callCount(1);
+        });
+      });
+    }); // end checkVertexData
 
     describe('checkTransitionableVertexData', function() {
       const vi_key = 'some inner key';

@@ -297,34 +297,15 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
  * @return outerEdge if we should use outer edge to expand, undefined otherwise, wrapped in a promise
  */
 function filterOuter(metadata, outerEdge, innerEdge) {
-  return bluebird.coroutine(function*() {
-    // TODO should this check also occur in the initializeVertexMap
-    // - move to checkVertexData?
-    // skip the vertices that are mapped to something different
-    if(metadata.vertexMap.has(innerEdge.src)) {
-      if(metadata.vertexMap.get(innerEdge.src) !== outerEdge.src)
-        return undefined;
-    } else {
-      // outerEdge src is mapped to a different inner id
-      if(metadata.inverseMap.has(outerEdge.src))
-        return undefined;
-    }
-    if(metadata.vertexMap.has(innerEdge.dst)) {
-      if(metadata.vertexMap.get(innerEdge.dst) !== outerEdge.dst)
-        return undefined;
-    } else {
-      // outerEdge dst is mapped to a different inner id
-      if(metadata.inverseMap.has(outerEdge.dst))
-        return undefined;
-    }
-
-    const srcPossible = yield exports.units.checkVertexData(metadata, innerEdge.src, outerEdge.src);
-    const dstPossible = yield exports.units.checkVertexData(metadata, innerEdge.dst, outerEdge.dst);
-
+  // TODO what about edge matching? we need to ensure the outer edge isn't already matched to another inner edge
+  return Promise.resolve([
+    exports.units.checkVertexData(metadata, innerEdge.src, outerEdge.src),
+    exports.units.checkVertexData(metadata, innerEdge.dst, outerEdge.dst),
+  ]).then(function([srcPossible, dstPossible]) {
     if(srcPossible && dstPossible)
       return outerEdge;
     return undefined;
-  })();
+  });
 }
 
 /**
@@ -372,6 +353,16 @@ function getData(metadata, vi_key, innerMatch) {
  * this just decides which one to call
  */
 function checkVertexData(metadata, vi_key, vo_key) {
+  // skip the vertices that are mapped to something different
+  if(metadata.vertexMap.has(vi_key)) {
+    if(metadata.vertexMap.get(vi_key) !== vo_key)
+      return Promise.resolve(false);
+  } else {
+    // outerEdge src is mapped to a different inner id
+    if(metadata.inverseMap.has(vo_key))
+      return Promise.resolve(false);
+  }
+
   return Promise.resolve([
     exports.units.checkTransitionableVertexData(metadata, vi_key, vo_key),
     exports.units.checkFixedVertexData(metadata, vi_key, vo_key),
