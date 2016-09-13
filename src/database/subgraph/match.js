@@ -5,7 +5,6 @@ const subgraph = require('../subgraph');
 
 module.exports = exports = match;
 
-// TODO does this need boundaries, like ideas?
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.match = match;
 exports.units.recursiveMatch = recursiveMatch;
@@ -396,14 +395,20 @@ function checkTransitionableVertexData(metadata, vi_key, vo_key) {
     if(!metadata.outer.getMatch(vo_key).options.transitionable) return false;
 
     // make sure we have data to work with
-    const vo_data = yield metadata.outer.getData(vo_key);
-    if(!vo_data) return true;
+    // XXX do some units require data?
+    // - let's say one is inner is null and outer is not
+    // - can we use the units of outer to triage inner?
+    // - I feel like "just returning true" is a bad assumption to make
+    // - just because they are marked as "transitionable", does it mean that "null is an acceptable value"?
+    // - maybe we'll never get into this situation, so maybe this concern is moot
     const vi_data = yield exports.units.getData(metadata, vi_key, innerMatch);
     if(!vi_data) return true;
+    const vo_data = yield metadata.outer.getData(vo_key);
+    if(!vo_data) return true;
 
     // this might be pedantic, but it'll make thing easier later
     // they must either both HAVE or NOT HAVE a unit
-    if(vo_data.hasOwnProperty('unit') !== vi_data.hasOwnProperty('unit')) return false;
+    if(vi_data.hasOwnProperty('unit') !== vo_data.hasOwnProperty('unit')) return false;
 
     if(metadata.unitsOnly) {
       // TODO what does this mean? unit only but no units
@@ -415,10 +420,9 @@ function checkTransitionableVertexData(metadata, vi_key, vo_key) {
       if(!vo_data.hasOwnProperty('unit')) return false;
 
       // match the units
-      return vo_data.unit === vi_data.unit;
+      return vi_data.unit === vo_data.unit;
     } else {
-      // XXX we need a distance function for each kind of unit, use that instead
-      return _.isEqual(vo_data, vi_data);
+      return exports.boundaries.dataEquality(vi_data, vo_data);
     }
   })();
 }
@@ -460,4 +464,14 @@ function checkFixedVertexData(metadata, vi_key, vo_key) {
 
     return innerMatch.matcher(outerData, innerData);
   })();
+}
+
+// TODO do we need to push more things to the boundaries?
+Object.defineProperty(exports, 'boundaries', { value: {} });
+exports.boundaries.dataEquality = dataEquality;
+
+// XXX we need a distance function for each kind of unit, use that instead
+// - or maybe each unit will also have an equality check
+function dataEquality(vi_data, vo_data) {
+  return _.isEqual(vi_data, vo_data);
 }

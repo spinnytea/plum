@@ -8,13 +8,18 @@ const subgraph = require('../../../src/database/subgraph');
 describe('subgraph', function() {
   describe('match', function() {
     const units = _.assign({}, subgraph.match.units);
+    const boundaries = _.assign({}, subgraph.match.boundaries);
     after(function() {
       _.assign(subgraph.match.units, units);
+      _.assign(subgraph.match.boundaries, boundaries);
     });
     beforeEach(function() {
       // spy on the functions
       _.keys(subgraph.match.units).forEach(function(name) {
         subgraph.match.units[name] = sinon.stub();
+      });
+      _.keys(subgraph.match.boundaries).forEach(function(name) {
+        subgraph.match.boundaries[name] = sinon.stub();
       });
     });
 
@@ -173,87 +178,115 @@ describe('subgraph', function() {
 
     it.skip('checkVertexData'); // end checkVertexData
 
-    it.skip('checkTransitionableVertexData');
-
-    describe.skip('vertexTransitionableAcceptable', function() {
-      let vo_data;
-      let vi_data;
-      let unitsOnly;
-
-      it('up front checks', function() {
-        // if transitionable isn't true for both then it doesn't matter what vo_data, vi_data, unitsOnly are
-        expect(units.vertexTransitionableAcceptable(true, vo_data, false, vi_data, unitsOnly)).to.equal(true);
-        expect(units.vertexTransitionableAcceptable(false, vo_data, true, vi_data, unitsOnly)).to.equal(false);
-        expect(units.vertexTransitionableAcceptable(false, vo_data, false, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('no outer data', function() {
-        vo_data = null;
-        vi_data = { value: 1, unit: 'a' };
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('no inner data', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = null;
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('same data, units only', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 1, unit: 'a' };
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('different data, units only', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 2, unit: 'a' };
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('different units, units only', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 1, unit: 'b' };
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(false);
-      });
-
-      it('mismatched units, units only', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 1 };
-        unitsOnly = true;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(false);
-      });
-
-      it.skip('no units, units only');
-
-      it('same data, not units', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 1, unit: 'a' };
-        unitsOnly = false;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(true);
-      });
-
-      it('different data, not units', function() {
-        vo_data = { value: 1, unit: 'a' };
-        vi_data = { value: 2, unit: 'a' };
-        unitsOnly = false;
-        expect(units.vertexTransitionableAcceptable(true, vo_data, true, vi_data, unitsOnly)).to.equal(false);
-      });
-    }); // end vertexTransitionableAcceptable
-
-    describe('checkFixedVertexData', function() {
-      const meta = { inner: {}, outer: {} };
+    describe('checkTransitionableVertexData', function() {
       const vi_key = 'some inner key';
       const vo_key = 'some outer key';
       const innerMatch = { data: 'some inner match data', options: {} };
+      const outerMatch = { data: 'some outer match data', options: {} };
+      const meta = { inner: { getMatch: ()=>(innerMatch) }, outer: { getMatch: ()=>(outerMatch) } };
+      beforeEach(function() {
+        innerMatch.options.transitionable = true;
+        outerMatch.options.transitionable = true;
+        meta.unitsOnly = false;
+
+        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
+        meta.outer.getData = sinon.stub().returns(Promise.resolve({unit: 'some unit', value: 'some outer data'}));
+
+        subgraph.match.boundaries.dataEquality = ()=>('dataEquality check');
+      });
+
+      // only valid if both vertices are transitionable
+      it('transitionable checks', bluebird.coroutine(function*() {
+        // false, true
+        innerMatch.options.transitionable = false;
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(true);
+
+        // false, false
+        outerMatch.options.transitionable = false;
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(true);
+
+        // true, false
+        innerMatch.options.transitionable = true;
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
+
+        // never got that far
+        expect(meta.outer.getData).to.have.callCount(0);
+        expect(subgraph.match.units.getData).to.have.callCount(0);
+      }));
+
+      // XXX controversial check, see src
+      it('no inner data', function() {
+        subgraph.match.units.getData.returns(Promise.resolve(null));
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+        });
+      });
+
+      // XXX controversial check, see src
+      it('no outer data', function() {
+        meta.outer.getData.returns(Promise.resolve(null));
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+        });
+      });
+
+      // XXX controversial check, see src
+      it('must have units or nah', bluebird.coroutine(function*() {
+        // both have unit
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
+
+        // one has unit
+        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
+
+        // neither have unit
+        meta.outer.getData.returns(Promise.resolve('some outer data'));
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
+
+        // other has unit
+        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
+        expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
+      }));
+
+      it('units only without units', function() {
+        meta.unitsOnly = true;
+        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
+        meta.outer.getData.returns(Promise.resolve('some outer data'));
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(false);
+        });
+      });
+
+      it('units only; match', function() {
+        meta.unitsOnly = true;
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+        });
+      });
+
+      it('units only; mismatch', function() {
+        meta.unitsOnly = true;
+        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some other unit', value: 'some inner data'}));
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(false);
+        });
+      });
+
+      // this is a boundary condition
+      it('NOT units only', function() {
+        return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal('dataEquality check');
+        });
+      });
+    }); // end checkTransitionableVertexData
+
+    describe('checkFixedVertexData', function() {
+      const vi_key = 'some inner key';
+      const vo_key = 'some outer key';
+      const innerMatch = { data: 'some inner match data', options: {} };
+      const meta = { inner: { getMatch: ()=>(innerMatch) }, outer: {} };
       beforeEach(function() {
         meta.inner.hasIdea = ()=>(false);
-        meta.inner.getMatch = ()=>(innerMatch);
         meta.outer.getIdea = ()=>('some outer idea');
         meta.outer.getData = ()=>(Promise.resolve('some outer data'));
         meta.unitsOnly = false;
@@ -262,7 +295,7 @@ describe('subgraph', function() {
         innerMatch.options.transitionable = false;
         innerMatch.options.pointer = false;
 
-        subgraph.match.units.getData = ()=>(Promise.resolve('some inner data'));
+        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
       });
 
       // when the subgraph has already mapped the idea
