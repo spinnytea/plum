@@ -166,86 +166,6 @@ describe('subgraph', function() {
       });
     }); // end filterOuter
 
-    describe('getData', function() {
-      // XXX do I setup a subgraph or mock a subgraph
-      // - if I mock out subgraph, then I'm basically just writing a test to get 100% coverage
-      // - even if we primarily test with a mock, should I still run one or two without mocks?
-      const vi_key = 'some inner id';
-      const vo_key = 'some outer id';
-      const target_key = 'some target id';
-      const metadata = { inner: {}, outer: {} };
-      const innerMatch = { data: target_key, options: {} };
-      beforeEach(function() {
-        // defaults are set for 'no data to be found'
-        innerMatch.options.pointer = true;
-        metadata.inner.hasIdea = sinon.stub().returns(false);
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
-        metadata.outer.getData = sinon.stub().returns(Promise.resolve(null));
-        metadata.vertexMap = new Map();
-      });
-
-      it('not pointer', bluebird.coroutine(function*() {
-        innerMatch.options.pointer = false;
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
-        expect(metadata.inner.getData).to.have.callCount(0);
-
-        expect(yield units.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
-
-        expect(metadata.inner.getData).to.have.callCount(1);
-        expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
-
-      }));
-
-      it('hasIdea', bluebird.coroutine(function*() {
-        metadata.inner.hasIdea = sinon.stub().returns(true);
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
-        expect(metadata.inner.getData).to.have.callCount(0);
-
-        expect(yield units.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
-
-        expect(metadata.inner.getData).to.have.callCount(1);
-        expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
-
-      }));
-
-      it('target inner has data', bluebird.coroutine(function*() {
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
-        expect(metadata.inner.getData).to.have.callCount(0);
-
-        expect(yield units.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
-
-        expect(metadata.inner.getData).to.have.callCount(1);
-        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
-
-      }));
-
-      it('target outer has data', bluebird.coroutine(function*() {
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
-        metadata.outer.getData = sinon.stub().returns(Promise.resolve('some outer data'));
-        metadata.vertexMap.set(target_key, vo_key);
-        expect(metadata.inner.getData).to.have.callCount(0);
-        expect(metadata.outer.getData).to.have.callCount(0);
-
-        expect(yield units.getData(metadata, vi_key, innerMatch)).to.equal('some outer data');
-
-        expect(metadata.inner.getData).to.have.callCount(1);
-        expect(metadata.outer.getData).to.have.callCount(1);
-        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
-        expect(metadata.outer.getData).to.have.been.calledWithExactly(vo_key);
-      }));
-
-      it('no data to be found', bluebird.coroutine(function*() {
-        expect(metadata.inner.getData).to.have.callCount(0);
-        expect(metadata.outer.getData).to.have.callCount(0);
-
-        expect(yield units.getData(metadata, vi_key, innerMatch)).to.equal(null);
-
-        expect(metadata.inner.getData).to.have.callCount(1);
-        expect(metadata.outer.getData).to.have.callCount(0);
-        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
-      }));
-    }); // end getData
-
     // this is mostly integration stuff
     describe('checkVertexData', function() {
       const vi_key = 'some inner key';
@@ -328,7 +248,7 @@ describe('subgraph', function() {
         outerMatch.options.transitionable = true;
         meta.unitsOnly = false;
 
-        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
+        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
         meta.outer.getData = sinon.stub().returns(Promise.resolve({unit: 'some unit', value: 'some outer data'}));
 
         subgraph.match.boundaries.dataEquality = ()=>('dataEquality check');
@@ -350,12 +270,12 @@ describe('subgraph', function() {
 
         // never got that far
         expect(meta.outer.getData).to.have.callCount(0);
-        expect(subgraph.match.units.getData).to.have.callCount(0);
+        expect(subgraph.match.boundaries.getData).to.have.callCount(0);
       }));
 
       // XXX controversial check, see src
       it('no inner data', function() {
-        subgraph.match.units.getData.returns(Promise.resolve(null));
+        subgraph.match.boundaries.getData.returns(Promise.resolve(null));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(true);
         });
@@ -375,7 +295,7 @@ describe('subgraph', function() {
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
 
         // one has unit
-        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
+        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
 
         // neither have unit
@@ -383,13 +303,13 @@ describe('subgraph', function() {
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
 
         // other has unit
-        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
+        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
       }));
 
       it('units only without units', function() {
         meta.unitsOnly = true;
-        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
+        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
         meta.outer.getData.returns(Promise.resolve('some outer data'));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(false);
@@ -405,7 +325,7 @@ describe('subgraph', function() {
 
       it('units only; mismatch', function() {
         meta.unitsOnly = true;
-        subgraph.match.units.getData.returns(Promise.resolve({unit: 'some other unit', value: 'some inner data'}));
+        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some other unit', value: 'some inner data'}));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(false);
         });
@@ -434,7 +354,7 @@ describe('subgraph', function() {
         innerMatch.options.transitionable = false;
         innerMatch.options.pointer = false;
 
-        subgraph.match.units.getData.returns(Promise.resolve('some inner data'));
+        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
       });
 
       // when the subgraph has already mapped the idea
@@ -501,5 +421,84 @@ describe('subgraph', function() {
         });
       });
     }); // end checkFixedVertexData
+
+    //
+
+    describe('getData', function() {
+      // XXX do I setup a subgraph or mock a subgraph
+      // - if I mock out subgraph, then I'm basically just writing a test to get 100% coverage
+      // - even if we primarily test with a mock, should I still run one or two without mocks?
+      const vi_key = 'some inner id';
+      const vo_key = 'some outer id';
+      const target_key = 'some target id';
+      const metadata = { inner: {}, outer: {} };
+      const innerMatch = { data: target_key, options: {} };
+      beforeEach(function() {
+        // defaults are set for 'no data to be found'
+        innerMatch.options.pointer = true;
+        metadata.inner.hasIdea = sinon.stub().returns(false);
+        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
+        metadata.outer.getData = sinon.stub().returns(Promise.resolve(null));
+        metadata.vertexMap = new Map();
+      });
+
+      it('not pointer', bluebird.coroutine(function*() {
+        innerMatch.options.pointer = false;
+        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+        expect(metadata.inner.getData).to.have.callCount(0);
+
+        expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
+
+        expect(metadata.inner.getData).to.have.callCount(1);
+        expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
+      }));
+
+      it('hasIdea', bluebird.coroutine(function*() {
+        metadata.inner.hasIdea = sinon.stub().returns(true);
+        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+        expect(metadata.inner.getData).to.have.callCount(0);
+
+        expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
+
+        expect(metadata.inner.getData).to.have.callCount(1);
+        expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
+      }));
+
+      it('target inner has data', bluebird.coroutine(function*() {
+        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+        expect(metadata.inner.getData).to.have.callCount(0);
+
+        expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
+
+        expect(metadata.inner.getData).to.have.callCount(1);
+        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
+      }));
+
+      it('target outer has data', bluebird.coroutine(function*() {
+        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
+        metadata.outer.getData = sinon.stub().returns(Promise.resolve('some outer data'));
+        metadata.vertexMap.set(target_key, vo_key);
+        expect(metadata.inner.getData).to.have.callCount(0);
+        expect(metadata.outer.getData).to.have.callCount(0);
+
+        expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some outer data');
+
+        expect(metadata.inner.getData).to.have.callCount(1);
+        expect(metadata.outer.getData).to.have.callCount(1);
+        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
+        expect(metadata.outer.getData).to.have.been.calledWithExactly(vo_key);
+      }));
+
+      it('no data to be found', bluebird.coroutine(function*() {
+        expect(metadata.inner.getData).to.have.callCount(0);
+        expect(metadata.outer.getData).to.have.callCount(0);
+
+        expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal(null);
+
+        expect(metadata.inner.getData).to.have.callCount(1);
+        expect(metadata.outer.getData).to.have.callCount(0);
+        expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
+      }));
+    }); // end getData
   }); // end match
 }); // end subgraph

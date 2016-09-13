@@ -12,7 +12,6 @@ exports.units.recursiveMatch = recursiveMatch;
 exports.units.initializeVertexMap = initializeVertexMap;
 exports.units.getOuterVertexIdFn = getOuterVertexIdFn;
 exports.units.filterOuter = filterOuter;
-exports.units.getData = getData;
 exports.units.checkVertexData = checkVertexData;
 exports.units.checkTransitionableVertexData = checkTransitionableVertexData;
 exports.units.checkFixedVertexData = checkFixedVertexData;
@@ -315,43 +314,6 @@ function filterOuter(metadata, innerEdge, outerEdge) {
 }
 
 /**
- * we need to find the match data since it could be in a few places
- * this is thanks to match.options.pointer
- * without pointers, it would just be the first return
- *
- * this isn't part of subgraph.getData because this is specific to matching/searching
- * (searching looks for the target's data, too)
- * once the subgraph is concrete, then the data should only come from the mapped idea
- * TL;DR: pointer is used for matching only
- */
-function getData(metadata, vi_key, innerMatch) {
-  return bluebird.coroutine(function*() {
-    // if this is not a pointer, then we use the data at this vertex
-    // if it already is mapped, then use the data at this vertex
-    if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
-      return metadata.inner.getData(vi_key);
-
-    // if this is a pointer...
-    // (and doesn't have and idea mapped)
-
-    // if our inner graph has a value cached for the target, use that
-    let data = yield metadata.inner.getData(innerMatch.data);
-    if(data)
-      return data;
-
-    // if we have already mapped the target vertex, then use the outer data
-    // (mapped, but the inner hasn't been updated with the idea data)
-    // (note: we may not have mapped the pointer target by this point, and that's okay)
-    let vo_key = metadata.vertexMap.get(innerMatch.data);
-    if(vo_key)
-      return metadata.outer.getData(vo_key);
-
-    // we can't find data to use (this is okay)
-    return Promise.resolve(null);
-  })();
-}
-
-/**
  * check the matchers against data to make sure the edge is valid
  *
  * checkTransitionableVertexData and checkFixedVertexData are two sides of the same coin
@@ -398,7 +360,7 @@ function checkTransitionableVertexData(metadata, vi_key, vo_key) {
     // - I feel like "just returning true" is a bad assumption to make
     // - just because they are marked as "transitionable", does it mean that "null is an acceptable value"?
     // - maybe we'll never get into this situation, so maybe this concern is moot
-    const vi_data = yield exports.units.getData(metadata, vi_key, innerMatch);
+    const vi_data = yield exports.boundaries.getData(metadata, vi_key, innerMatch);
     if(!vi_data) return true;
     const vo_data = yield metadata.outer.getData(vo_key);
     if(!vo_data) return true;
@@ -448,7 +410,7 @@ function checkFixedVertexData(metadata, vi_key, vo_key) {
     // this will also correct for subgraph.matcher.id
     let innerData;
     if(innerMatch.options.pointer)
-      innerData = yield exports.units.getData(metadata, vi_key, innerMatch);
+      innerData = yield exports.boundaries.getData(metadata, vi_key, innerMatch);
     else
       innerData = innerMatch.data;
 
@@ -466,9 +428,47 @@ function checkFixedVertexData(metadata, vi_key, vo_key) {
 // TODO do we need to push more things to the boundaries?
 Object.defineProperty(exports, 'boundaries', { value: {} });
 exports.boundaries.dataEquality = dataEquality;
+exports.boundaries.getData = getData;
 
 // XXX we need a distance function for each kind of unit, use that instead
 // - or maybe each unit will also have an equality check
 function dataEquality(vi_data, vo_data) {
   return _.isEqual(vi_data, vo_data);
+}
+
+/**
+ * we need to find the match data since it could be in a few places
+ * this is thanks to match.options.pointer
+ * without pointers, it would just be the first return
+ *
+ * this isn't part of subgraph.getData because this is specific to matching/searching
+ * (searching looks for the target's data, too)
+ * once the subgraph is concrete, then the data should only come from the mapped idea
+ * TL;DR: pointer is used for matching only
+ */
+function getData(metadata, vi_key, innerMatch) {
+  return bluebird.coroutine(function*() {
+    // if this is not a pointer, then we use the data at this vertex
+    // if it already is mapped, then use the data at this vertex
+    if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
+      return metadata.inner.getData(vi_key);
+
+    // if this is a pointer...
+    // (and doesn't have and idea mapped)
+
+    // if our inner graph has a value cached for the target, use that
+    let data = yield metadata.inner.getData(innerMatch.data);
+    if(data)
+      return data;
+
+    // if we have already mapped the target vertex, then use the outer data
+    // (mapped, but the inner hasn't been updated with the idea data)
+    // (note: we may not have mapped the pointer target by this point, and that's okay)
+    let vo_key = metadata.vertexMap.get(innerMatch.data);
+    if(vo_key)
+      return metadata.outer.getData(vo_key);
+
+    // we can't find data to use (this is okay)
+    return Promise.resolve(null);
+  })();
 }
