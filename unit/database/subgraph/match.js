@@ -173,6 +173,8 @@ describe('subgraph', function() {
 
     it.skip('checkVertexData'); // end checkVertexData
 
+    it.skip('checkTransitionableVertexData');
+
     describe.skip('vertexTransitionableAcceptable', function() {
       let vo_data;
       let vi_data;
@@ -244,68 +246,88 @@ describe('subgraph', function() {
       });
     }); // end vertexTransitionableAcceptable
 
-    describe.skip('runMatchersOnVertices', function() {
-      const innerData = 'some inner data';
-      const innerMatch = { data: 'inner match data', options: {} };
-      const outer = {};
-      const vo_key = {};
-      const unitsOnly = false;
+    describe('checkFixedVertexData', function() {
+      const meta = { inner: {}, outer: {} };
+      const vi_key = 'some inner key';
+      const vo_key = 'some outer key';
+      const innerMatch = { data: 'some inner match data', options: {} };
       beforeEach(function() {
-        void(innerData, innerMatch, outer, vo_key, unitsOnly);
+        meta.inner.hasIdea = ()=>(false);
+        meta.inner.getMatch = ()=>(innerMatch);
+        meta.outer.getIdea = ()=>('some outer idea');
+        meta.outer.getData = ()=>(Promise.resolve('some outer data'));
+        meta.unitsOnly = false;
 
-        outer.getIdea = sinon.stub().returns('some id');
-        outer.getData = sinon.stub().returns(Promise.resolve('some outer data'));
+        innerMatch.matcher = sinon.stub().returns(true);
         innerMatch.options.transitionable = false;
-        innerMatch.matcher = sinon.stub().returns('matcher fn');
+        innerMatch.options.pointer = false;
+
+        subgraph.match.units.getData = ()=>(Promise.resolve('some inner data'));
       });
 
-      it('not handled here: units', function() {
-        return units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, true).then(function(result) {
+      // when the subgraph has already mapped the idea
+      it('wrong phase', function() {
+        meta.inner.hasIdea = sinon.stub().returns(true);
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(true);
           expect(innerMatch.matcher).to.have.callCount(0);
         });
       });
 
+      // we unconditionally call this on vertices
+      // this is one case that isn't handled by this function
+      it('not handled here: units', function() {
+        meta.unitsOnly = true;
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
+          expect(innerMatch.matcher).to.have.callCount(0);
+        });
+      });
+
+      // we unconditionally call this on vertices
+      // this is one case that isn't handled by this function
       it('not handled here: transitionable', function() {
         innerMatch.options.transitionable = true;
-        return units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(true);
           expect(innerMatch.matcher).to.have.callCount(0);
         });
       });
 
+      // check innerData
       it('is a pointer', function() {
         innerMatch.options.pointer = true;
-        return units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
-          expect(result).to.equal('matcher fn');
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
           expect(innerMatch.matcher).to.have.callCount(1);
-          // test for innerData
           expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer data', 'some inner data');
         });
       });
 
+      // check innerData
       it('not a pointer', function() {
         innerMatch.options.pointer = false;
-        return units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
-          expect(result).to.equal('matcher fn');
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
+          expect(result).to.equal(true);
           expect(innerMatch.matcher).to.have.callCount(1);
-          // test for innerData
-          expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer data', 'inner match data');
+          expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer data', 'some inner match data');
         });
       });
 
+      // check outerData
       it('id matcher', function() {
         sinon.stub(subgraph.matcher, 'id');
         innerMatch.matcher = subgraph.matcher.id;
         innerMatch.matcher.returns('stubbed result');
-        return units.runMatchersOnVertices(innerData, innerMatch, outer, vo_key, unitsOnly).then(function(result) {
+        return units.checkFixedVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal('stubbed result');
           expect(innerMatch.matcher).to.have.callCount(1);
-          // test for outerData
-          expect(innerMatch.matcher).to.have.been.calledWithExactly('some id', 'inner match data');
+          expect(innerMatch.matcher).to.have.been.calledWithExactly('some outer idea', 'some inner match data');
+          subgraph.matcher.id.restore();
+        }, function() {
           subgraph.matcher.id.restore();
         });
       });
-    }); // end runMatchersOnVertices
+    }); // end checkFixedVertexData
   }); // end match
 }); // end subgraph

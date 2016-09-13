@@ -454,9 +454,9 @@ function checkFixedVertexData(metadata, vi_key, vo_key) {
     // outer data is simple since it's concerete
     let outerData;
     if(innerMatch.matcher === subgraph.matcher.id)
-      outerData = yield metadata.outer.getIdea(vo_key);
+      outerData = metadata.outer.getIdea(vo_key);
     else
-      outerData = metadata.outer.getData(vo_key);
+      outerData = yield metadata.outer.getData(vo_key);
 
     return innerMatch.matcher(outerData, innerData);
   })();
