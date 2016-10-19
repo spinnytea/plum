@@ -140,7 +140,7 @@ function recursiveMatch(metadata) {
  * it's a complicated process, so we need to compute some indexes and caches to speed it up
  */
 class SubgraphMatchMetadata {
-  constructor(outer, inner, vertexMap, unitsOnly) {
+  constructor(outer, inner, vertexMap, unitsOnly, isClone) {
     // outer subgraph (concrete, the represents the world)
     this.outer = outer;
     // inner subgraph (the one we are matching)
@@ -151,49 +151,43 @@ class SubgraphMatchMetadata {
     // the edges in the outer subgraph, grouped by link
     this.outerEdges = new Map();
     // a list of inner edges, will be pruned as they are validated
-    this.innerEdges = inner.allEdges().slice(0);
+    this.innerEdges = isClone?undefined:inner.allEdges().slice(0);
 
     // vertexes we have matched so far
-    this.vertexMap = vertexMap;
+    this.vertexMap = new Map(vertexMap);
     // inverse map
     this.inverseMap = new Map();
-    vertexMap.forEach(this.inverseMap.set);
+    vertexMap.forEach((o,i)=>this.inverseMap.set(o,i));
 
     // edges we have mapped so far
-    this.edgeMap = new Map();
+    this.edgeMap = isClone?undefined:new Map();
 
     // a list of edges we are going to skip until we match our next edge
     this.skipThisTime = new Set();
 
-
-    // fill outer edges, grouped by type
-    outer.allEdges().forEach((edge) => {
-      let list = this.outerEdges.get(edge.link.name);
-      if(!list) {
-        list = [];
-        this.outerEdges.set(edge.link.name, list);
-      }
-      list.push(edge);
-    });
+    if(!isClone) {
+      // fill outer edges, grouped by type
+      outer.allEdges().forEach((edge) => {
+        let list = this.outerEdges.get(edge.link.name);
+        if(!list) {
+          list = [];
+          this.outerEdges.set(edge.link.name, list);
+        }
+        list.push(edge);
+      });
+    }
   }
   clone() {
-    // FIXME rewrite
+    let c = new SubgraphMatchMetadata(this.outer, this.inner, this.vertexMap, this.unitsOnly, true);
+
+    // copy the complex objects by hand
+    c.edgeMap = new Map(this.edgeMap);
+    c.innerEdges = this.innerEdges.slice(0);
+    for(let [link, list] of this.outerEdges)
+      c.outerEdges.set(link, list.slice(0));
+
+    return c;
   }
-  // clone(existing, innerEdges, vertexMap, inverseMap) {
-  //   // this.outer = existing.outer;
-  //   // this.inner = existing.inner;
-  //   // this.unitsOnly = existing.unitsOnly;
-  //   //
-  //   // // outer edges are consumed as we match them, copies need their own version
-  //   // this.outerEdges = _.clone(existing.outerEdges);
-  //   //
-  //   // // XXX why are these modified outside of the metadata object
-  //   // //  - they should have accessor methods
-  //   // this.innerEdges = innerEdges;
-  //   // this.vertexMap = vertexMap;
-  //   // this.inverseMap = inverseMap;
-  //   // this.skipThisTime = new Set();
-  // }
 
   getOuterEdges(edge) {
     return this.outerEdges.get(edge.link.name) || [];

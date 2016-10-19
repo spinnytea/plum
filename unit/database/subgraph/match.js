@@ -27,7 +27,132 @@ describe('subgraph', function() {
 
     it.skip('recursiveMatch'); // end recursiveMatch
 
-    it.skip('SubgraphMatchMetadata'); // end SubgraphMatchMetadata
+    describe('SubgraphMatchMetadata', function() {
+      let metadata;
+      beforeEach(function() {
+        function e(src, link, dst) { return { src: src, link: { name: link }, dst: dst }; }
+
+        const outer = { allEdges: function() { return [
+          e('A', 'l1', 'B'), e('B', 'l1', 'C'), e('A', 'l1', 'C'),
+          e('D', 'l2', 'E'), e('E', 'l2', 'F'), e('D', 'l2', 'F'),
+        ]; } };
+        const inner = { allEdges: function() { return [
+          e('a', 'l1', 'b'), e('b', 'l1', 'c'), e('a', 'l1', 'c'),
+        ]; } };
+        const vertexMap = new Map();
+        vertexMap.set('a', 'A');
+
+        metadata = new units.SubgraphMatchMetadata(outer, inner, vertexMap, true);
+
+        metadata.edgeMap.set(1, 2);
+        metadata.skipThisTime.add(3);
+      });
+
+      it('constructor', function() {
+        expect(metadata.outer).to.not.equal(undefined);
+        expect(metadata.inner).to.not.equal(undefined);
+        expect(metadata.unitsOnly).to.equal(true);
+        expect(Array.from(metadata.outerEdges.entries())).to.deep.equal([
+          ['l1', [{ src: 'A', link: { name: 'l1' }, dst: 'B' }, { src: 'B', link: { name: 'l1' }, dst: 'C' }, { src: 'A', link: { name: 'l1' }, dst: 'C' }]],
+          ['l2', [{ src: 'D', link: { name: 'l2' }, dst: 'E' }, { src: 'E', link: { name: 'l2' }, dst: 'F' }, { src: 'D', link: { name: 'l2' }, dst: 'F' }]]
+        ]);
+        expect(metadata.innerEdges).to.deep.equal([
+          { src: 'a', link: { name: 'l1' }, dst: 'b' },
+          { src: 'b', link: { name: 'l1' }, dst: 'c' },
+          { src: 'a', link: { name: 'l1' }, dst: 'c' }
+        ]);
+        expect(Array.from(metadata.vertexMap.entries())).to.deep.equal([['a', 'A']]);
+        expect(Array.from(metadata.inverseMap.entries())).to.deep.equal([['A', 'a']]);
+        expect(Array.from(metadata.edgeMap.entries())).to.deep.equal([[1, 2]]);
+        expect(Array.from(metadata.skipThisTime.values())).to.deep.equal([3]);
+      });
+
+      it('clone', function() {
+        const clone = metadata.clone();
+
+        // Note: copied directly from above
+        expect(clone.outer).to.not.equal(undefined);
+        expect(clone.inner).to.not.equal(undefined);
+        expect(clone.unitsOnly).to.equal(true);
+        expect(Array.from(clone.outerEdges.entries())).to.deep.equal([
+          ['l1', [{ src: 'A', link: { name: 'l1' }, dst: 'B' }, { src: 'B', link: { name: 'l1' }, dst: 'C' }, { src: 'A', link: { name: 'l1' }, dst: 'C' }]],
+          ['l2', [{ src: 'D', link: { name: 'l2' }, dst: 'E' }, { src: 'E', link: { name: 'l2' }, dst: 'F' }, { src: 'D', link: { name: 'l2' }, dst: 'F' }]]
+        ]);
+        expect(clone.innerEdges).to.deep.equal([
+          { src: 'a', link: { name: 'l1' }, dst: 'b' },
+          { src: 'b', link: { name: 'l1' }, dst: 'c' },
+          { src: 'a', link: { name: 'l1' }, dst: 'c' }
+        ]);
+        expect(Array.from(clone.vertexMap.entries())).to.deep.equal([['a', 'A']]);
+        expect(Array.from(clone.inverseMap.entries())).to.deep.equal([['A', 'a']]);
+        expect(Array.from(clone.edgeMap.entries())).to.deep.equal([[1, 2]]);
+        expect(Array.from(clone.skipThisTime.values())).to.deep.equal([]); // supposed to be empty in the clone
+
+        // more
+
+        expect(Object.keys(clone)).to.deep.equal([
+          'outer', 'inner', 'unitsOnly', 'outerEdges', 'innerEdges',
+          'vertexMap', 'inverseMap', 'edgeMap', 'skipThisTime'
+        ]);
+        // these three are by-reference / readonly
+        // so they should be not be copied
+        expect(clone.outer).to.equal(metadata.outer);
+        expect(clone.inner).to.equal(metadata.inner);
+        expect(clone.unitsOnly).to.equal(metadata.unitsOnly);
+        // these six are by-value / editable
+        // so they should be separate objects (deep copies)
+        expect(clone.outerEdges).to.not.equal(metadata.outerEdges);
+        expect(clone.innerEdges).to.not.equal(metadata.innerEdges);
+        expect(clone.vertexMap).to.not.equal(metadata.vertexMap);
+        expect(clone.inverseMap).to.not.equal(metadata.inverseMap);
+        expect(clone.edgeMap).to.not.equal(metadata.edgeMap);
+        expect(clone.skipThisTime).to.not.equal(metadata.skipThisTime);
+      });
+
+      it('getOuterEdges', function() {
+        const edge = { link: { name: 'l1' } };
+        expect(metadata.getOuterEdges(edge)).to.deep.equal([
+          { src: 'A', link: { name: 'l1' }, dst: 'B' },
+          { src: 'B', link: { name: 'l1' }, dst: 'C' },
+          { src: 'A', link: { name: 'l1' }, dst: 'C' }
+        ]);
+
+        edge.link.name = 'no_edges';
+        expect(metadata.getOuterEdges(edge)).to.deep.equal([]);
+      });
+
+      it('removeInnerEdge', function() {
+        const edge = metadata.innerEdges[1];
+        metadata.removeInnerEdge(edge);
+        expect(metadata.innerEdges).to.deep.equal([
+          { src: 'a', link: { name: 'l1' }, dst: 'b' },
+          { src: 'a', link: { name: 'l1' }, dst: 'c' }
+        ]);
+      });
+
+      it('removeOuterEdge', function() {
+        const edge = metadata.outerEdges.get('l1')[1];
+        metadata.removeOuterEdge(edge);
+        expect(metadata.outerEdges.get('l1')).to.deep.equal([
+          { src: 'A', link: { name: 'l1' }, dst: 'B' },
+          { src: 'A', link: { name: 'l1' }, dst: 'C' }
+        ]);
+      });
+
+      it('updateVertexMap', function() {
+        expect(Array.from(metadata.vertexMap.entries())).to.deep.equal([['a', 'A']]);
+        expect(Array.from(metadata.inverseMap.entries())).to.deep.equal([['A', 'a']]);
+        expect(Array.from(metadata.edgeMap.entries())).to.deep.equal([[1, 2]]);
+
+        const innerEdge = { id: 100, src: 'y', dst: 'z'};
+        const outerEdge = { id: 200, src: 'Y', dst: 'Z'};
+        metadata.updateVertexMap(innerEdge, outerEdge);
+
+        expect(Array.from(metadata.vertexMap.entries())).to.deep.equal([['a', 'A'], ['y', 'Y'], ['z', 'Z']]);
+        expect(Array.from(metadata.inverseMap.entries())).to.deep.equal([['A', 'a'], ['Y', 'y'], ['Z', 'z']]);
+        expect(Array.from(metadata.edgeMap.entries())).to.deep.equal([[1, 2], [100, 200]]);
+      });
+    }); // end SubgraphMatchMetadata
 
     describe('initializeVertexMap', function() {
       const outer = {};
