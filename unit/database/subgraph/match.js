@@ -23,7 +23,69 @@ describe('subgraph', function() {
       });
     });
 
-    it.skip('match'); // end match
+    describe('match', function() {
+      it('outer concrete', function() {
+        expect(function() { units.match({ concrete: false }); }).to.throw('the outer subgraph must be concrete');
+      });
+
+      it('inner vertices', function() {
+        return units.match({ concrete: true }, { _vertexCount: 0 }).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.match.units.initializeVertexMap).to.have.callCount(0);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.callCount(0);
+          expect(subgraph.match.units.recursiveMatch).to.have.callCount(0);
+        });
+      });
+
+      it('inner has more vertices', function() {
+        return units.match({ concrete: true, _vertexCount: 3 }, { _vertexCount: 6 }).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.match.units.initializeVertexMap).to.have.callCount(0);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.callCount(0);
+          expect(subgraph.match.units.recursiveMatch).to.have.callCount(0);
+        });
+      });
+
+      it('inner has more edges', function() {
+        return units.match({ concrete: true, _vertexCount: 6, _edgeCount: 3 }, { _vertexCount: 3, _edgeCount: 6 }).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.match.units.initializeVertexMap).to.have.callCount(0);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.callCount(0);
+          expect(subgraph.match.units.recursiveMatch).to.have.callCount(0);
+        });
+      });
+
+      it('bad vertexMap', function() {
+        let outer = { concrete: true, _vertexCount: 6, _edgeCount: 6 };
+        let inner = { _vertexCount: 3, _edgeCount: 3 };
+        subgraph.match.units.initializeVertexMap.returns(Promise.resolve(undefined));
+        return units.match(outer, inner).then(function(result) {
+          expect(result).to.deep.equal([]);
+          expect(subgraph.match.units.initializeVertexMap).to.have.callCount(1);
+          expect(subgraph.match.units.initializeVertexMap).to.have.calledWith(outer, inner, false);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.callCount(0);
+          expect(subgraph.match.units.recursiveMatch).to.have.callCount(0);
+        });
+      });
+
+      it('success', function() {
+        let outer = { concrete: true, _vertexCount: 6, _edgeCount: 6 };
+        let inner = { _vertexCount: 3, _edgeCount: 3 };
+        let vertexMap = new Map();
+        subgraph.match.units.initializeVertexMap.returns(Promise.resolve(vertexMap));
+        subgraph.match.units.SubgraphMatchMetadata.returns('metadata');
+        subgraph.match.units.recursiveMatch.returns(Promise.resolve(['something']));
+        return units.match(outer, inner).then(function(result) {
+          expect(result).to.deep.equal(['something']);
+          expect(subgraph.match.units.initializeVertexMap).to.have.callCount(1);
+          expect(subgraph.match.units.initializeVertexMap).to.have.calledWith(outer, inner, false);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.callCount(1);
+          expect(subgraph.match.units.SubgraphMatchMetadata).to.have.calledWith(outer, inner, vertexMap, false);
+          expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
+          expect(subgraph.match.units.recursiveMatch).to.have.calledWith('metadata');
+        });
+      });
+    }); // end match
 
     it.skip('recursiveMatch'); // end recursiveMatch
 
