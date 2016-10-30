@@ -23,6 +23,7 @@ describe('subgraph', function() {
       });
     });
 
+    // Note: this function is all integration
     describe('match', function() {
       it('outer concrete', function() {
         expect(function() { units.match({ concrete: false }); }).to.throw('the outer subgraph must be concrete');
@@ -87,7 +88,28 @@ describe('subgraph', function() {
       });
     }); // end match
 
-    it.skip('recursiveMatch'); // end recursiveMatch
+    // Note: this function is all integration
+    describe('recursiveMatch', function() {
+      describe('base case', function() {
+        it('done');
+
+        it('not done');
+      }); // end base case
+
+      describe('no outer', function() {
+        it('skip edge');
+
+        it('dead end');
+      }); // end no outer
+
+      describe('recurse', function() {
+        it('one');
+
+        it('two');
+
+        it('three');
+      }); // end recurse
+    }); // end recursiveMatch
 
     describe('SubgraphMatchMetadata', function() {
       let metadata;

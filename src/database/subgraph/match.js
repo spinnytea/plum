@@ -71,6 +71,7 @@ function recursiveMatch(metadata) {
 
   // pick the best inner edge
   // (this helps us reduce the number of branches)
+  // XXX move inner edge function into metadata for better testing
   const innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
     // XXX should we only skip if the target isn't mapped? if so, then do we need 'skipThisTime'?
     if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
@@ -79,6 +80,7 @@ function recursiveMatch(metadata) {
   }, null);
 
   // find all matching outer edges
+  // XXX move outer edge function into metadata for better testing
   return Promise.all(metadata.getOuterEdges(innerEdge).map(function(outerEdge) {
     return exports.units.filterOuter(metadata, innerEdge, outerEdge);
   })).then(function(matches) {
