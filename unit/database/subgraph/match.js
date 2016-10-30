@@ -23,6 +23,23 @@ describe('subgraph', function() {
       });
     });
 
+    // XXX use this in more tests instead of making it from scratch
+    function setupMetadata() {
+      function e(src, link, dst) { return { src: src, link: { name: link }, dst: dst }; }
+
+      const outer = { allEdges: function() { return [
+        e('A', 'l1', 'B'), e('B', 'l1', 'C'), e('A', 'l1', 'C'),
+        e('D', 'l2', 'E'), e('E', 'l2', 'F'), e('D', 'l2', 'F'),
+      ]; } };
+      const inner = { allEdges: function() { return [
+        e('a', 'l1', 'b'), e('b', 'l1', 'c'), e('a', 'l1', 'c'),
+      ]; } };
+      const vertexMap = new Map();
+      vertexMap.set('a', 'A');
+
+      return new units.SubgraphMatchMetadata(outer, inner, vertexMap, true);
+    }
+
     // Note: this function is all integration
     describe('match', function() {
       it('outer concrete', function() {
@@ -91,15 +108,58 @@ describe('subgraph', function() {
     // Note: this function is all integration
     describe('recursiveMatch', function() {
       describe('base case', function() {
-        it('done');
+        const metadata = {};
+        beforeEach(function() {
+          metadata.innerEdges = [];
+          metadata.vertexMap = new Map();
+          metadata.vertexMap.set('a', 'A');
+          metadata.inner = { _vertexCount: 0 };
+        });
 
-        it('not done');
+        it('done', function() {
+          metadata.inner._vertexCount = 1;
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal([metadata.vertexMap]);
+          });
+        });
+
+        it('not done', function() {
+          metadata.inner._vertexCount = 2;
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal([]);
+          });
+        });
       }); // end base case
 
       describe('no outer', function() {
-        it('skip edge');
+        let metadata;
+        beforeEach(function() {
+          metadata = setupMetadata();
 
-        it('dead end');
+          metadata.nextInnerEdge = function() { return metadata.innerEdges[0]; };
+          metadata.nextOuterEdges = function() { return Promise.resolve([]); };
+          subgraph.match.units.recursiveMatch.returns('mock result');
+        });
+
+        it('skip edge', function() {
+          metadata.inner.getMatch = function() { return { options: { pointer: true } }; };
+          expect(metadata.skipThisTime.size).to.equal(0);
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.equal('mock result');
+            expect(metadata.skipThisTime.size).to.equal(1);
+            expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
+          });
+        });
+
+        it('dead end', function() {
+          metadata.inner.getMatch = function() { return { options: { pointer: false } }; };
+          expect(metadata.skipThisTime.size).to.equal(0);
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal([]);
+            expect(metadata.skipThisTime.size).to.equal(0);
+            expect(subgraph.match.units.recursiveMatch).to.have.callCount(0);
+          });
+        });
       }); // end no outer
 
       describe('recurse', function() {
@@ -114,19 +174,7 @@ describe('subgraph', function() {
     describe('SubgraphMatchMetadata', function() {
       let metadata;
       beforeEach(function() {
-        function e(src, link, dst) { return { src: src, link: { name: link }, dst: dst }; }
-
-        const outer = { allEdges: function() { return [
-          e('A', 'l1', 'B'), e('B', 'l1', 'C'), e('A', 'l1', 'C'),
-          e('D', 'l2', 'E'), e('E', 'l2', 'F'), e('D', 'l2', 'F'),
-        ]; } };
-        const inner = { allEdges: function() { return [
-          e('a', 'l1', 'b'), e('b', 'l1', 'c'), e('a', 'l1', 'c'),
-        ]; } };
-        const vertexMap = new Map();
-        vertexMap.set('a', 'A');
-
-        metadata = new units.SubgraphMatchMetadata(outer, inner, vertexMap, true);
+        metadata = setupMetadata();
 
         metadata.edgeMap.set(1, 2);
         metadata.skipThisTime.add(3);
