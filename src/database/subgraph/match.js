@@ -63,6 +63,7 @@ function match(outer, inner, unitsOnly) {
  */
 function recursiveMatch(metadata) {
   // are we done?
+  // Note: we won't recurse if innerEdges.length === skipThisTime.size
   if(metadata.innerEdges.length === 0) {
     if(metadata.vertexMap.size === metadata.inner._vertexCount)
       return Promise.resolve([metadata.vertexMap]);
@@ -70,23 +71,10 @@ function recursiveMatch(metadata) {
   }
 
   // pick the best inner edge
-  // (this helps us reduce the number of branches)
-  // XXX move inner edge function into metadata for better testing
-  const innerEdge = metadata.innerEdges.reduce(function(prev, curr) {
-    // XXX should we only skip if the target isn't mapped? if so, then do we need 'skipThisTime'?
-    if(prev === null || curr.options.pref > prev.options.pref && metadata.skipThisTime.has(curr))
-      return curr;
-    return prev;
-  }, null);
+  const innerEdge = metadata.nextInnerEdge();
 
   // find all matching outer edges
-  // XXX move outer edge function into metadata for better testing
-  return Promise.all(metadata.getOuterEdges(innerEdge).map(function(outerEdge) {
-    return exports.units.filterOuter(metadata, innerEdge, outerEdge);
-  })).then(function(matches) {
-    // clear the list of unmatched edges
-    return matches.filter(_.identity);
-  }).then(function(matches) {
+  return metadata.nextOuterEdges(innerEdge).then(function(matches) {
     // 0 outer
     // - deal with vertex.options.pointer
     // - otherwise return no match
@@ -99,7 +87,7 @@ function recursiveMatch(metadata) {
       // but next time, don't consider this edge
       // XXX should we only skip if the target isn't mapped?
       if((innerSrcMatch.options.pointer || innerDstMatch.options.pointer) && metadata.innerEdges.length > metadata.skipThisTime.size) {
-        metadata.skipThisTime.push(innerEdge);
+        metadata.skipThisTime.add(innerEdge);
         return exports.units.recursiveMatch(metadata);
       }
 
@@ -191,6 +179,31 @@ class SubgraphMatchMetadata {
     return c;
   }
 
+  // pick the best inner edge
+  // (this helps us reduce the number of branches)
+  nextInnerEdge() {
+    const skipThisTime = this.skipThisTime;
+    return this.innerEdges.reduce(function(prev, curr) {
+      // XXX should we only skip if the target isn't mapped? if so, then do we need 'skipThisTime'?
+      if(skipThisTime.has(curr)) return prev;
+      if(prev === null) return curr;
+      if(curr.options.pref > prev.options.pref) return curr;
+      return prev;
+    }, null);
+  }
+
+  // find all matching outer edges
+  nextOuterEdges(innerEdge) {
+    const self = this;
+    return Promise.all(this.getOuterEdges(innerEdge).map(function(outerEdge) {
+      return exports.units.filterOuter(self, innerEdge, outerEdge);
+    })).then(function(matches) {
+      // clear the list of unmatched edges
+      return matches.filter(_.identity);
+    });
+  }
+
+  // XXX remove
   getOuterEdges(edge) {
     return this.outerEdges.get(edge.link.name) || [];
   }

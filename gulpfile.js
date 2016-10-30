@@ -100,3 +100,4 @@ gulp.task('unitd', [], function() {
   gulp.watch(files, ['unit']);
   gulp.start('unit');
 });
+gulp.task('unitc', ['coverage-unit']);

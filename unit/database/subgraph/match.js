@@ -193,6 +193,63 @@ describe('subgraph', function() {
         expect(clone.skipThisTime).to.not.equal(metadata.skipThisTime);
       });
 
+      describe('nextInnerEdge', function() {
+        beforeEach(function() {
+          // they all need options
+          metadata.innerEdges.forEach(function(e) { e.options = { pref: 0 }; });
+        });
+
+        it('no priority', function() {
+          // all things being equal, it will pick the first one
+          expect(metadata.nextInnerEdge()).to.equal(metadata.innerEdges[0]);
+        });
+
+        it('skipThisTime', function() {
+          // if we are skipping one, then it shouldn't be considered
+          metadata.skipThisTime.add(metadata.innerEdges[0]);
+          expect(metadata.nextInnerEdge()).to.equal(metadata.innerEdges[1]);
+        });
+
+        it('best pref', function() {
+          // if we find a better pref option, that should be chosen
+          metadata.innerEdges[2].options.pref = 1;
+          expect(metadata.nextInnerEdge()).to.equal(metadata.innerEdges[2]);
+        });
+      }); // end nextInnerEdge
+
+      describe('nextOuterEdges', function() {
+        it('all match', function() {
+          const edge = metadata.innerEdges[0];
+          subgraph.match.units.filterOuter.returnsArg(2); // return all outer edges
+          return metadata.nextOuterEdges(edge).then(function(matches) {
+            expect(matches).to.deep.equal([
+              { src: 'A', link: { name: 'l1' }, dst: 'B' },
+              { src: 'B', link: { name: 'l1' }, dst: 'C' },
+              { src: 'A', link: { name: 'l1' }, dst: 'C' }
+            ]);
+          });
+        });
+
+        it('one match', function() {
+          const edge = metadata.innerEdges[0];
+          subgraph.match.units.filterOuter.returns(undefined);
+          subgraph.match.units.filterOuter.onCall(1).returnsArg(2); // return all outer edges
+          return metadata.nextOuterEdges(edge).then(function(matches) {
+            expect(matches).to.deep.equal([
+              { src: 'B', link: { name: 'l1' }, dst: 'C' },
+            ]);
+          });
+        });
+
+        it('no match', function() {
+          const edge = metadata.innerEdges[0];
+          subgraph.match.units.filterOuter.returns(undefined);
+          return metadata.nextOuterEdges(edge).then(function(matches) {
+            expect(matches).to.deep.equal([]);
+          });
+        });
+      }); // end nextOuterEdge
+
       it('getOuterEdges', function() {
         const edge = { link: { name: 'l1' } };
         expect(metadata.getOuterEdges(edge)).to.deep.equal([
