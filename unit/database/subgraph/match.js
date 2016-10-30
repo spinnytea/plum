@@ -227,6 +227,12 @@ describe('subgraph', function() {
               { src: 'B', link: { name: 'l1' }, dst: 'C' },
               { src: 'A', link: { name: 'l1' }, dst: 'C' }
             ]);
+
+            const outerEdges = metadata.outer.allEdges();
+            expect(subgraph.match.units.filterOuter).to.have.callCount(3);
+            expect(subgraph.match.units.filterOuter).to.have.been.calledWithExactly(metadata, edge, outerEdges[0]);
+            expect(subgraph.match.units.filterOuter).to.have.been.calledWithExactly(metadata, edge, outerEdges[1]);
+            expect(subgraph.match.units.filterOuter).to.have.been.calledWithExactly(metadata, edge, outerEdges[2]);
           });
         });
 
@@ -238,6 +244,7 @@ describe('subgraph', function() {
             expect(matches).to.deep.equal([
               { src: 'B', link: { name: 'l1' }, dst: 'C' },
             ]);
+            expect(subgraph.match.units.filterOuter).to.have.callCount(3);
           });
         });
 
@@ -246,21 +253,20 @@ describe('subgraph', function() {
           subgraph.match.units.filterOuter.returns(undefined);
           return metadata.nextOuterEdges(edge).then(function(matches) {
             expect(matches).to.deep.equal([]);
+            expect(subgraph.match.units.filterOuter).to.have.callCount(3);
+          });
+        });
+
+        it('no edges', function() {
+          const edge = _.cloneDeep(metadata.innerEdges[0]);
+          edge.link.name = 'no_edges';
+          subgraph.match.units.filterOuter.returnsArg(2); // return all outer edges
+          return metadata.nextOuterEdges(edge).then(function(matches) {
+            expect(matches).to.deep.equal([]);
+            expect(subgraph.match.units.filterOuter).to.have.callCount(0);
           });
         });
       }); // end nextOuterEdge
-
-      it('getOuterEdges', function() {
-        const edge = { link: { name: 'l1' } };
-        expect(metadata.getOuterEdges(edge)).to.deep.equal([
-          { src: 'A', link: { name: 'l1' }, dst: 'B' },
-          { src: 'B', link: { name: 'l1' }, dst: 'C' },
-          { src: 'A', link: { name: 'l1' }, dst: 'C' }
-        ]);
-
-        edge.link.name = 'no_edges';
-        expect(metadata.getOuterEdges(edge)).to.deep.equal([]);
-      });
 
       it('removeInnerEdge', function() {
         const edge = metadata.innerEdges[1];

@@ -194,19 +194,15 @@ class SubgraphMatchMetadata {
 
   // find all matching outer edges
   nextOuterEdges(innerEdge) {
-    const self = this;
-    return Promise.all(this.getOuterEdges(innerEdge).map(function(outerEdge) {
-      return exports.units.filterOuter(self, innerEdge, outerEdge);
-    })).then(function(matches) {
+    const edges = this.outerEdges.get(innerEdge.link.name) || [];
+    return Promise.all(edges.map(
+      (outerEdge) => exports.units.filterOuter(this, innerEdge, outerEdge)
+    )).then(function(matches) {
       // clear the list of unmatched edges
       return matches.filter(_.identity);
     });
   }
 
-  // XXX remove
-  getOuterEdges(edge) {
-    return this.outerEdges.get(edge.link.name) || [];
-  }
   removeInnerEdge(innerEdge) {
     _.pull(this.innerEdges, innerEdge);
   }
