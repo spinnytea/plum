@@ -138,14 +138,14 @@ describe('subgraph', function() {
 
           metadata.nextInnerEdge = function() { return metadata.innerEdges[0]; };
           metadata.nextOuterEdges = function() { return Promise.resolve([]); };
-          subgraph.match.units.recursiveMatch.returns('mock result');
+          subgraph.match.units.recursiveMatch.returns(['mock recursiveMatch']);
         });
 
         it('skip edge', function() {
           metadata.inner.getMatch = function() { return { options: { pointer: true } }; };
           expect(metadata.skipThisTime.size).to.equal(0);
           return units.recursiveMatch(metadata).then(function(result) {
-            expect(result).to.equal('mock result');
+            expect(result).to.deep.equal(['mock recursiveMatch']);
             expect(metadata.skipThisTime.size).to.equal(1);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
           });
@@ -163,7 +163,35 @@ describe('subgraph', function() {
       }); // end no outer
 
       describe('recurse', function() {
-        it('one');
+        let metadata;
+        let outerEdges;
+        beforeEach(function() {
+          metadata = setupMetadata();
+          metadata.nextInnerEdge = function() { return metadata.innerEdges[0]; };
+          metadata.removeOuterEdge = sinon.spy();
+          metadata.updateVertexMap = sinon.spy();
+
+          outerEdges = metadata.outerEdges.get('l1');
+
+          subgraph.match.units.recursiveMatch.returns(['mock recursiveMatch']);
+        });
+
+        it('one', function() {
+          const oe = outerEdges[0];
+          const ie = metadata.innerEdges[0];
+
+          // only return one
+          metadata.nextOuterEdges = function() { return Promise.resolve([oe]); };
+
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal(['mock recursiveMatch']);
+            expect(metadata.removeOuterEdge).to.have.callCount(1);
+            expect(metadata.removeOuterEdge).to.have.been.calledWithExactly(oe);
+            expect(metadata.updateVertexMap).to.have.callCount(1);
+            expect(metadata.updateVertexMap).to.have.been.calledWithExactly(ie, oe);
+            expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
+          });
+        });
 
         it('two');
 
