@@ -185,7 +185,6 @@ describe('subgraph', function() {
           expect(meta.removeOuterEdge).to.have.been.calledWithExactly(outer);
           expect(meta.updateVertexMap).to.have.callCount(1);
           expect(meta.updateVertexMap).to.have.been.calledWithExactly(inner, outer);
-          expect(meta.clone).to.have.callCount(0);
         }
 
         it('one', function() {
@@ -202,7 +201,7 @@ describe('subgraph', function() {
 
         it('two', function() {
           const innerEdge = metadata.innerEdges[0];
-          const branches = [spyOnMeta({}), spyOnMeta({})];
+          const branches = [spyOnMeta({}), metadata];
           metadata.clone.onCall(0).returns(branches[0]);
           metadata.clone.onCall(1).returns(branches[1]);
           metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0], outerEdges[1]]); };
@@ -210,7 +209,7 @@ describe('subgraph', function() {
             expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch']);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(2);
 
-            expect(metadata.clone).to.have.callCount(2); // TODO drop this down to 1
+            expect(metadata.clone).to.have.callCount(1);
             check(branches[0], innerEdge, outerEdges[0]);
             check(branches[1], innerEdge, outerEdges[1]);
           });
@@ -218,7 +217,7 @@ describe('subgraph', function() {
 
         it('three', function() {
           const innerEdge = metadata.innerEdges[0];
-          const branches = [spyOnMeta({}), spyOnMeta({}), spyOnMeta({})];
+          const branches = [spyOnMeta({}), spyOnMeta({}), metadata];
           metadata.clone.onCall(0).returns(branches[0]);
           metadata.clone.onCall(1).returns(branches[1]);
           metadata.clone.onCall(2).returns(branches[2]);
@@ -227,7 +226,7 @@ describe('subgraph', function() {
             expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch', 'mock recursiveMatch']);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(3);
 
-            expect(metadata.clone).to.have.callCount(3); // TODO drop this down to 2
+            expect(metadata.clone).to.have.callCount(2);
             check(branches[0], innerEdge, outerEdges[0]);
             check(branches[1], innerEdge, outerEdges[1]);
             check(branches[2], innerEdge, outerEdges[2]);
@@ -808,6 +807,12 @@ describe('subgraph', function() {
     }); // end checkFixedVertexData
 
     //
+
+    it('dataEquality', function() {
+      // XXX this is just for coverage but it will most certainly change when the function is updated
+      expect(boundaries.dataEquality({ a: 1, b: 2 }, { a: 1, b: 2 })).to.equal(true);
+      expect(boundaries.dataEquality({ a: 1, b: 2 }, { a: 1, b: 3 })).to.equal(false);
+    }); // end dataEquality
 
     describe('getData', function() {
       // XXX do I setup a subgraph or mock a subgraph

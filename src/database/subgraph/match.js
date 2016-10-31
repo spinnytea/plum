@@ -98,24 +98,16 @@ function recursiveMatch(metadata) {
     // common stuff before recursion
     // - note that when we do the many case, we don't need to do this for all the clones #winning
     metadata.removeInnerEdge(innerEdge);
+    metadata.skipThisTime.clear();
 
-    // 1 outer
-    // - reuse metadata
-    // - recurse
-    if(matches.length === 1) {
-      const outerEdge = matches[0];
-      metadata.removeOuterEdge(outerEdge);
-      metadata.updateVertexMap(innerEdge, outerEdge);
-      metadata.skipThisTime.clear();
-      return exports.units.recursiveMatch(metadata);
-    }
-
-    // + outer
+    // 1 or many outer
     // - loop over matches
-    // - clone metadata
+    // - clone (or reuse) metadata
     // - recurse
     return Promise.all(matches.map(function(outerEdge) {
-      const meta = metadata.clone(); // XXX don't clone if it's the last match
+      // don't clone if it's the last match
+      const last = (arguments[1] === matches.length - 1);
+      const meta = last ? metadata : metadata.clone();
       meta.removeOuterEdge(outerEdge);
       meta.updateVertexMap(innerEdge, outerEdge);
       return exports.units.recursiveMatch(meta);
