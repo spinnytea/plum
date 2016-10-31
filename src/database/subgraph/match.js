@@ -52,7 +52,7 @@ function match(outer, inner, unitsOnly) {
     if(!vertexMap) return [];
 
     // recurse over the edges
-    return exports.units.recursiveMatch(exports.units.SubgraphMatchMetadata(outer, inner, vertexMap, unitsOnly));
+    return exports.units.recursiveMatch(new exports.units.SubgraphMatchMetadata(outer, inner, vertexMap, unitsOnly));
   });
 }
 
@@ -66,7 +66,7 @@ function recursiveMatch(metadata) {
   // Note: we won't recurse if innerEdges.length === skipThisTime.size
   if(metadata.innerEdges.length === 0) {
     if(metadata.vertexMap.size === metadata.inner._vertexCount)
-      return Promise.resolve([metadata.vertexMap]);
+      return Promise.resolve([{ v: metadata.vertexMap, e: metadata.edgeMap }]);
     return Promise.resolve([]);
   }
 
@@ -319,13 +319,15 @@ function filterOuter(metadata, innerEdge, outerEdge) {
  */
 function checkVertexData(metadata, vi_key, vo_key) {
   // skip the vertices that are mapped to something different
-  if(metadata.vertexMap.has(vi_key)) {
-    if(metadata.vertexMap.get(vi_key) !== vo_key)
-      return Promise.resolve(false);
-  } else {
-    // outerEdge src is mapped to a different inner id
-    if(metadata.inverseMap.has(vo_key))
-      return Promise.resolve(false);
+  if(metadata.vertexMap) {
+    if(metadata.vertexMap.has(vi_key)) {
+      if(metadata.vertexMap.get(vi_key) !== vo_key)
+        return Promise.resolve(false);
+    } else {
+      // outerEdge src is mapped to a different inner id
+      if(metadata.inverseMap.has(vo_key))
+        return Promise.resolve(false);
+    }
   }
 
   return Promise.resolve([
