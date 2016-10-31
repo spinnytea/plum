@@ -168,34 +168,71 @@ describe('subgraph', function() {
         beforeEach(function() {
           metadata = setupMetadata();
           metadata.nextInnerEdge = function() { return metadata.innerEdges[0]; };
-          metadata.removeOuterEdge = sinon.spy();
-          metadata.updateVertexMap = sinon.spy();
+          spyOnMeta(metadata);
 
           outerEdges = metadata.outerEdges.get('l1');
 
           subgraph.match.units.recursiveMatch.returns(['mock recursiveMatch']);
         });
+        function spyOnMeta(meta) {
+          meta.removeOuterEdge = sinon.spy();
+          meta.updateVertexMap = sinon.spy();
+          meta.clone = sinon.stub();
+          return meta;
+        }
+        function check(meta, inner, outer) {
+          expect(meta.removeOuterEdge).to.have.callCount(1);
+          expect(meta.removeOuterEdge).to.have.been.calledWithExactly(outer);
+          expect(meta.updateVertexMap).to.have.callCount(1);
+          expect(meta.updateVertexMap).to.have.been.calledWithExactly(inner, outer);
+          expect(meta.clone).to.have.callCount(0);
+        }
 
         it('one', function() {
-          const oe = outerEdges[0];
-          const ie = metadata.innerEdges[0];
-
-          // only return one
-          metadata.nextOuterEdges = function() { return Promise.resolve([oe]); };
-
+          const innerEdge = metadata.innerEdges[0];
+          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0]]); };
           return units.recursiveMatch(metadata).then(function(result) {
             expect(result).to.deep.equal(['mock recursiveMatch']);
-            expect(metadata.removeOuterEdge).to.have.callCount(1);
-            expect(metadata.removeOuterEdge).to.have.been.calledWithExactly(oe);
-            expect(metadata.updateVertexMap).to.have.callCount(1);
-            expect(metadata.updateVertexMap).to.have.been.calledWithExactly(ie, oe);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
+
+            expect(metadata.clone).to.have.callCount(0);
+            check(metadata, innerEdge, outerEdges[0]);
           });
         });
 
-        it('two');
+        it('two', function() {
+          const innerEdge = metadata.innerEdges[0];
+          const branches = [spyOnMeta({}), spyOnMeta({})];
+          metadata.clone.onCall(0).returns(branches[0]);
+          metadata.clone.onCall(1).returns(branches[1]);
+          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0], outerEdges[1]]); };
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch']);
+            expect(subgraph.match.units.recursiveMatch).to.have.callCount(2);
 
-        it('three');
+            expect(metadata.clone).to.have.callCount(2); // TODO drop this down to 1
+            check(branches[0], innerEdge, outerEdges[0]);
+            check(branches[1], innerEdge, outerEdges[1]);
+          });
+        });
+
+        it('three', function() {
+          const innerEdge = metadata.innerEdges[0];
+          const branches = [spyOnMeta({}), spyOnMeta({}), spyOnMeta({})];
+          metadata.clone.onCall(0).returns(branches[0]);
+          metadata.clone.onCall(1).returns(branches[1]);
+          metadata.clone.onCall(2).returns(branches[2]);
+          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0], outerEdges[1], outerEdges[2]]); };
+          return units.recursiveMatch(metadata).then(function(result) {
+            expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch', 'mock recursiveMatch']);
+            expect(subgraph.match.units.recursiveMatch).to.have.callCount(3);
+
+            expect(metadata.clone).to.have.callCount(3); // TODO drop this down to 2
+            check(branches[0], innerEdge, outerEdges[0]);
+            check(branches[1], innerEdge, outerEdges[1]);
+            check(branches[2], innerEdge, outerEdges[2]);
+          });
+        });
       }); // end recurse
     }); // end recursiveMatch
 
