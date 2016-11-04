@@ -24,8 +24,8 @@ function makeEdges(prefs) {
  */
 describe('subgraph', function() {
   describe('search', function() {
-    let units = {};
-    let data = {
+    const units = _.assign({}, subgraph.search.units);
+    const data = {
       square: { name: 'square' },
       rectangle: { name: 'rectangle' },
       rhombus: { name: 'rhombus' },
@@ -37,7 +37,6 @@ describe('subgraph', function() {
     let sg;
     let sg_keys = {};
     before(function() {
-      _.assign(units, subgraph.search.units);
       return ideas.createGraph(data, [
         ['square', 'type_of', 'rectangle'],
         ['square', 'type_of', 'rhombus'],

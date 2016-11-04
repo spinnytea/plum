@@ -401,6 +401,7 @@ exports.matcher = {
 
 exports.Subgraph = Subgraph;
 exports.match = require('./subgraph/match');
+exports.rewrite = require('./subgraph/rewrite');
 exports.search = require('./subgraph/search');
 Object.defineProperty(exports, 'units', { value: {} });
 exports.units.LazyCopyObject = LazyCopyObject;
