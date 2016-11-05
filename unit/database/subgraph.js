@@ -341,6 +341,36 @@ describe('subgraph', function() {
       const link = links.get('thought_description');
       const e = sg.addEdge(v1, link, v2);
       expect(sg.getEdge(e)).to.deep.equal(sg._edges.data.get(e));
+      expect(sg.getEdge(e)).to.equal(sg.getEdge(e));
+    });
+
+    it('updateEdge', function() {
+      const v1 = sg.addVertex(subgraph.matcher.filler);
+      const v2 = sg.addVertex(subgraph.matcher.filler);
+      const link = links.get('thought_description');
+      const e = sg.addEdge(v1, link, v2);
+      const original = sg.getEdge(e);
+
+      // update with no change
+      sg.updateEdge(e, v1, v2);
+
+      // not the same edge, but nothing changed
+      expect(sg.getEdge(e)).to.not.equal(original);
+      expect(sg.getEdge(e)).to.deep.equal(original);
+
+      //
+
+      const newSrc = 'new src';
+      const newDst = 'new dst';
+      expect(v1).to.not.equal(newSrc);
+      expect(v2).to.not.equal(newDst);
+
+      sg.updateEdge(e, newSrc, newDst);
+
+      expect(sg.getEdge(e).src).to.equal(newSrc);
+      expect(sg.getEdge(e).dst).to.equal(newDst);
+      expect(original.src).to.equal(v1);
+      expect(original.dst).to.equal(v2);
     });
 
     it('allEdges', function() {

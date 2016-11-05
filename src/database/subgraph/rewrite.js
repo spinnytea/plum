@@ -137,15 +137,13 @@ function transitionEdge(subgraph, t, actual) {
   const edge = subgraph.getEdge(t['edge_id']);
   const prevSrc = edge.src;
   const prevDst = edge.dst;
+  const nextSrc = t.hasOwnProperty('replace_src') ? t['replace_src'] : edge.src;
+  const nextDst = t.hasOwnProperty('replace_dst') ? t['replace_dst'] : edge.dst;
 
-  if(t.hasOwnProperty('replace_src')) {
-    edge.src = t['replace_src'];
-  } else { // if(t.hasOwnProperty('replace_dst')) {
-    edge.dst = t['replace_dst'];
-  }
+  subgraph.updateEdge(t['edge_id'], nextSrc, nextDst);
 
-  if(actual && (edge.src !== prevSrc || edge.dst !== prevDst)) {
-    return exports.boundaries.updateLink(subgraph, edge.link, prevSrc, prevDst, edge.src, edge.dst);
+  if(actual && (nextSrc !== prevSrc || nextDst !== prevDst)) {
+    return exports.boundaries.updateLink(subgraph, edge.link, prevSrc, prevDst, nextSrc, nextDst);
   }
 
   return Promise.resolve();

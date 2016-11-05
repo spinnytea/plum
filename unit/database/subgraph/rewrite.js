@@ -28,7 +28,8 @@ describe('subgraph', function() {
         getMatch: sinon.stub().returns({ options: { transitionable: true } }), // some valid matcher
         getData: sinon.stub().returns(Promise.resolve()),
         setData: sinon.stub(),
-        getEdge: sinon.stub().returns({ options: { transitionable: true } }), // some valid edge
+        getEdge: sinon.stub().returns({ src: 1, dst: 2, options: { transitionable: true } }), // some valid edge
+        updateEdge: sinon.stub(),
       };
       dummy_vertex_transition = { vertex_id: 'some vertex id', replace: {} }; // some valid vertex transition
       dummy_edge_transition = { edge_id: 'some edge id', replace_src: 'some src id' }; // some valid edge transition
@@ -392,46 +393,42 @@ describe('subgraph', function() {
 
     describe('transitionEdge', function() {
       it('replace_src', function() {
-        const edge = { src: 1, dst: 2 };
-        sg.getEdge.returns(edge);
         return units.transitionEdge(sg, { edge_id: 'some edge', replace_src: 3 }, false).then(function() {
-          expect(edge).to.deep.equal({ src: 3, dst: 2 });
           expect(sg.getEdge).to.have.callCount(1);
           expect(sg.getEdge).to.have.been.calledWithExactly('some edge');
+          expect(sg.updateEdge).to.have.callCount(1);
+          expect(sg.updateEdge).to.have.been.calledWithExactly('some edge', 3, 2);
           expect(subgraph.rewrite.boundaries.updateLink).to.have.callCount(0);
         });
       });
 
       it('replace_dst', function() {
-        const edge = { src: 1, dst: 2 };
-        sg.getEdge.returns(edge);
         return units.transitionEdge(sg, { edge_id: 'some edge', replace_dst: 3 }, false).then(function() {
-          expect(edge).to.deep.equal({ src: 1, dst: 3 });
           expect(sg.getEdge).to.have.callCount(1);
           expect(sg.getEdge).to.have.been.calledWithExactly('some edge');
+          expect(sg.updateEdge).to.have.callCount(1);
+          expect(sg.updateEdge).to.have.been.calledWithExactly('some edge', 1, 3);
           expect(subgraph.rewrite.boundaries.updateLink).to.have.callCount(0);
         });
       });
 
       it('actual replace', function() {
-        const edge = { src: 1, dst: 2 };
-        sg.getEdge.returns(edge);
         return units.transitionEdge(sg, { edge_id: 'some edge', replace_dst: 3 }, true).then(function() {
-          expect(edge).to.deep.equal({ src: 1, dst: 3 });
           expect(sg.getEdge).to.have.callCount(1);
           expect(sg.getEdge).to.have.been.calledWithExactly('some edge');
+          expect(sg.updateEdge).to.have.callCount(1);
+          expect(sg.updateEdge).to.have.been.calledWithExactly('some edge', 1, 3);
           expect(subgraph.rewrite.boundaries.updateLink).to.have.callCount(1);
           expect(subgraph.rewrite.boundaries.updateLink).to.have.been.calledWithExactly(sg, undefined, 1, 2, 1, 3);
         });
       });
 
       it('actual replace w/o change', function() {
-        const edge = { src: 1, dst: 2 };
-        sg.getEdge.returns(edge);
         return units.transitionEdge(sg, { edge_id: 'some edge', replace_dst: 2 }, true).then(function() {
-          expect(edge).to.deep.equal({ src: 1, dst: 2 });
           expect(sg.getEdge).to.have.callCount(1);
           expect(sg.getEdge).to.have.been.calledWithExactly('some edge');
+          expect(sg.updateEdge).to.have.callCount(1);
+          expect(sg.updateEdge).to.have.been.calledWithExactly('some edge', 1, 2);
           expect(subgraph.rewrite.boundaries.updateLink).to.have.callCount(0);
         });
       });

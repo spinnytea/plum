@@ -321,6 +321,16 @@ class Subgraph {
   getEdge(id) {
     return this._edges.get(id);
   }
+  updateEdge(id, src, dst) {
+    var e = this._edges.get(id);
+    var l = e.link;
+    e = _.cloneDeep(_.omit(e, ['link']));
+
+    e.src = src;
+    e.link = l;
+    e.dst = dst;
+    this._edges.set(id, e);
+  }
   allEdges() {
     // TODO this could be made faster
     // TODO move into LazyCopyObject; but it makes some assumptions about i/_edgeCount so I don't want to

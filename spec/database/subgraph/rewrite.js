@@ -17,7 +17,7 @@ const subgraph = require('../../../src/database/subgraph');
  */
 describe('subgraph', function() {
   describe.only('rewrite', function() {
-    it.skip('mark and his fruit', bluebird.coroutine(function*() {
+    it('mark and his fruit', bluebird.coroutine(function*() {
       const data = {
         mark: { name: 'mark' },
         apple: { name: 'apple' },
@@ -75,14 +75,16 @@ describe('subgraph', function() {
       expect(sg_one).to.not.equal(sg_r);
       expect(yield sg_r.getData(sg_keys.ac)).to.deep.equal({ count: 1 });
       expect(yield sg_one.getData(sg_keys.ac)).to.deep.equal({ count: 4 });
-      // TODO test that idea is unchanged
+      expect(yield data.apple_count.data()).to.deep.equal({ count: 1 });
 
       const sg_two = yield subgraph.rewrite(sg_one, [{ edge_id: sg_keys.mark_has_bundle, replace_dst: sg_keys.bb }]);
       expect(sg_two).to.not.equal(undefined);
       expect(sg_two).to.not.equal(sg_one);
       expect(_.pick(sg_one.getEdge(sg_keys.mark_has_bundle), ['src', 'dst'])).to.deep.equal({ src: sg_keys.mark, dst: sg_keys.ab });
       expect(_.pick(sg_two.getEdge(sg_keys.mark_has_bundle), ['src', 'dst'])).to.deep.equal({ src: sg_keys.mark, dst: sg_keys.bb });
-      // TODO test that idea is unchanged
+      expect(yield data.mark.links(links.get('has'))).to.deep.equal([data.apple_bundle]);
+      expect(yield data.apple_bundle.links(links.get('has').opposite)).to.deep.equal([data.mark]);
+      expect(yield data.banana_bundle.links(links.get('has').opposite)).to.deep.equal([]);
 
       // though experiment done
       // apply the transitions
