@@ -5,7 +5,7 @@ const expect = require('chai').use(require('chai-things')).use(require('sinon-ch
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
 const subgraph = require('../../../src/database/subgraph');
-// TODO do I unit test the boundaries in spec or unit?
+// TODO do I unit test the boundaries in spec or unit? - do I need to test them specifically?
 
 /**
  * (instance: bundle)
@@ -16,7 +16,7 @@ const subgraph = require('../../../src/database/subgraph');
  *       (type of: count)
  */
 describe('subgraph', function() {
-  describe.only('rewrite', function() {
+  describe('rewrite', function() {
     it('mark and his fruit', bluebird.coroutine(function*() {
       const data = {
         mark: { name: 'mark' },
@@ -89,7 +89,17 @@ describe('subgraph', function() {
       // though experiment done
       // apply the transitions
 
-      // FIXME call again with actual
+      const sg_a = yield subgraph.rewrite(sg_r, [
+        { vertex_id: sg_keys.ac, replace: { count: 4 } },
+        { edge_id: sg_keys.mark_has_bundle, replace_dst: sg_keys.bb },
+      ], true);
+      expect(sg_a).to.equal(sg_r);
+      expect(yield sg_r.getData(sg_keys.ac)).to.deep.equal({ count: 4 });
+      expect(_.pick(sg_r.getEdge(sg_keys.mark_has_bundle), ['src', 'dst'])).to.deep.equal({ src: sg_keys.mark, dst: sg_keys.bb });
+      expect(yield data.apple_count.data()).to.deep.equal({ count: 4 });
+      expect(yield data.mark.links(links.get('has'))).to.deep.equal([data.banana_bundle]);
+      expect(yield data.apple_bundle.links(links.get('has').opposite)).to.deep.equal([]);
+      expect(yield data.banana_bundle.links(links.get('has').opposite)).to.deep.equal([data.mark]);
     }));
   }); // end rewrite
 }); // end subgraph

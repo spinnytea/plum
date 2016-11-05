@@ -165,7 +165,7 @@ function updateData(subgraph, vertex_id) {
 // - should it be (subgraph, prevEdge, nextEdge)? where link is the same?
 function updateLink(subgraph, link, prevSrc, prevDst, nextSrc, nextDst) {
   return Promise.all([
-    subgraph.getIdea(prevSrc).unlink(link, subgraph.getIdea(prevDst)),
-    subgraph.getIdea(nextSrc).link(link, subgraph.getIdea(nextDst)),
+    subgraph.getIdea(prevSrc).removeLink(link, subgraph.getIdea(prevDst)),
+    subgraph.getIdea(nextSrc).addLink(link, subgraph.getIdea(nextDst)),
   ]);
 }
