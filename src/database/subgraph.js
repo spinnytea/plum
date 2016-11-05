@@ -186,6 +186,7 @@ class Subgraph {
 
   // @param src: a vertex ID
   // @param link: the link from src to dst
+  //  - TODO allow link to be a string? then do `link = links.get(link);`
   // @param dst: a vertex ID
   // @param options.pref: higher prefs will be considered first (default: 0)
   // @param options.transitive: the same as link.transitive; will search in a transitive manner

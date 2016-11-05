@@ -55,7 +55,7 @@ create('type_of', { transitive: true });
 // mark --typeof_of-> person
 // mark --has-> apple
 // person --can_has-> apple
-//create('has');
+create('has');
 
 // appleInstance
 //  apple --property-> color
