@@ -817,7 +817,7 @@ describe('subgraph', function() {
     describe('getData', function() {
       // XXX do I setup a subgraph or mock a subgraph
       // - if I mock out subgraph, then I'm basically just writing a test to get 100% coverage
-      // - even if we primarily test with a mock, should I still run one or two without mocks?
+      // - even if we primarily test with a mock, should I still run one or two without mocks? (that's why we have specs tho)
       const vi_key = 'some inner id';
       const vo_key = 'some outer id';
       const target_key = 'some target id';

@@ -309,7 +309,7 @@ class Subgraph {
       });
     } else {
       // reset all vertices
-      // FIXME this should be internal to the object, or create a new one
+      // FIXME refactor LazyCopyObject, move to it's own file
       // this._data = new LazyCopyObject(); // ... can't use a class before it'd declared ... why is the constructor allowed?
       this._data.data = new Map();
       this._data.parent = undefined;
