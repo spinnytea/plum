@@ -8,7 +8,7 @@ const ids = require('../ids');
 const links = require('./links');
 const utils = require('../utils');
 
-const memory = new Map();
+const memory = new Map(); // local cache of CoreIdeas so they don't need to be loaded
 const NEXT_ID = 'ideas';
 const contextPromise = config.get('ideas', 'context', {});
 let loadFn = memoryLoad;
@@ -201,9 +201,11 @@ function getID(idea) {
 }
 
 Object.defineProperty(exports, 'boundaries', { value: {} });
-exports.boundaries.database = { data: {}, links: {} }; // for memorySave/memoryLoad
+// memoryLoad/memorySave/database - in memory storage; interface for testing
 exports.boundaries.memoryLoad = memoryLoad;
 exports.boundaries.memorySave = memorySave;
+exports.boundaries.database = { data: {}, links: {} };
+// TODO fileLoad/fileSave - disk storage; interface for production
 
 function memoryLoad(id, which) {
   return Promise.resolve(exports.boundaries.database[which][id]);
