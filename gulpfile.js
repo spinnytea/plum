@@ -1,16 +1,15 @@
 'use strict';
-var _ = require('lodash');
-var gulp = require('gulp');
-var istanbul = require('gulp-istanbul');
-var jshint = require('gulp-jshint');
-var mocha = require('gulp-mocha');
-var rm = require('gulp-rm');
+const _ = require('lodash');
+const gulp = require('gulp');
+const istanbul = require('gulp-istanbul');
+const jshint = require('gulp-jshint');
+const mocha = require('gulp-mocha');
 
 // define which report we will use for the test
 // 'nyan' is the best, so that is the default
 // 'list' is definitely has it's merits
 // 'json' and 'json-stream' are pretty neat
-var reporter = 'nyan';
+let reporter = 'nyan';
 process.argv.forEach(function(val, idx, array) {
   if(val === '-r' && array[idx+1])
     reporter = array[idx+1];
@@ -24,7 +23,7 @@ if(reporter === 'skipped') {
   // inline gulp
   // mocha report: list uses '-' to bullet skipped tests
   // we are going to grep the output to only include those tests
-  var write_back = process.stdout.write;
+  const write_back = process.stdout.write;
   process.stdout.write = function() {
     if(arguments[0].indexOf('-') === 7)
       write_back.apply(process.stdout, arguments);
@@ -32,11 +31,11 @@ if(reporter === 'skipped') {
 }
 
 
-var spec = ['spec/**/*.js'];
-var source = ['src/**/*.js'];
-var unit = ['unit/**/*.js'];
-var tests = _.flatten([spec, unit]);
-var files = _.flatten([source, tests]);
+const spec = ['spec/**/*.js'];
+const source = ['src/**/*.js'];
+const unit = ['unit/**/*.js'];
+const tests = _.flatten([spec, unit]);
+const files = _.flatten([source, tests]);
 
 gulp.task('lint', [], function () {
   return gulp.src(files).pipe(jshint())

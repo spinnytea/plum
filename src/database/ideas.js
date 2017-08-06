@@ -65,17 +65,21 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
   // remove the idea from this
   let ls = memory.get(this.id).links;
   let list = ls[link.name];
-  delete list[idea.id];
-  if(utils.isEmpty(list)) {
-    delete ls[link.name];
+  if(list) {
+    delete list[idea.id];
+    if(utils.isEmpty(list)) {
+      delete ls[link.name];
+    }
   }
 
   // remove this from the idea
   ls = memory.get(idea.id).links;
   list = ls[link.opposite.name];
-  delete list[this.id];
-  if(utils.isEmpty(list)) {
-    delete ls[link.opposite.name];
+  if(list) {
+    delete list[this.id];
+    if(utils.isEmpty(list)) {
+      delete ls[link.opposite.name];
+    }
   }
 });
 
@@ -127,7 +131,7 @@ exports.delete = bluebird.coroutine(function*(idea) {
   const ls = memory.get(proxy.id).links;
   for(const linkName of Object.keys(ls)) {
     const link = links.get(linkName);
-    for(const id of Object.keys(ls[linkName]))
+    for(const id of Object.keys(ls[linkName] || {}))
       yield proxy.removeLink(link, id);
   }
 
