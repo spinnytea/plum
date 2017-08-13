@@ -31,9 +31,9 @@ if(reporter === 'skipped') {
 }
 
 
-const spec = ['spec/**/*.js'];
+const spec = ['test_setup.js', 'spec/**/*.js'];
 const source = ['src/**/*.js'];
-const unit = ['unit/**/*.js'];
+const unit = ['test_setup.js', 'unit/**/*.js'];
 const tests = _.flatten([spec, unit]);
 const files = _.flatten([source, tests]);
 

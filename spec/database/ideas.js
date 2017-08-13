@@ -194,5 +194,9 @@ describe('ideas', function() {
         }).then(done, done);
       });
     }); // end memorySave
+
+    it.skip('fileLoad');
+
+    it.skip('fileSave');
   }); // end boundaries
 }); // end ideas

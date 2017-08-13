@@ -1,8 +1,11 @@
 'use strict';
 // these are the vertices of the though graph
 // this is how all the data is stored
+// TODO refactor file so it follows the same pattern (simple exports on the top, complex units)
 const _ = require('lodash');
 const bluebird = require('bluebird');
+const fs = require('fs');
+const mkdirp = require('mkdirp');
 const config = require('../config');
 const ids = require('../ids');
 const links = require('./links');
@@ -192,6 +195,8 @@ Object.defineProperty(exports, 'units', { value: {} });
 exports.units.memory = memory;
 exports.units.getID = getID;
 exports.units.ProxyIdea = ProxyIdea;
+exports.units.filepath = filepath;
+exports.units.filename = filename;
 
 function getID(idea) {
   if(!idea) throw new TypeError('can only load ideas');
@@ -200,18 +205,88 @@ function getID(idea) {
   return id;
 }
 
+// create a path/filename for an idea
+function filepath(id) {
+  let suffix = '';
+  if(id.length > 2)
+    suffix = '/' + id
+      .substr(0, (id.length-2+(id.length%2)))
+      .match(/../g)
+      .join('/');
+  return exports.boundaries.location + suffix;
+}
+function filename(id, which) {
+  return filepath(id) + '/' + id + '_' + which + '.json';
+}
+
+
 Object.defineProperty(exports, 'boundaries', { value: {} });
 // memoryLoad/memorySave/database - in memory storage; interface for testing
 exports.boundaries.memoryLoad = memoryLoad;
 exports.boundaries.memorySave = memorySave;
 exports.boundaries.database = { data: {}, links: {} };
-// TODO fileLoad/fileSave - disk storage; interface for production
+exports.boundaries.useMemoryDB = useMemoryDB;
+// fileLoad/fileSave/location - disk storage; interface for production
+exports.boundaries.fileLoad = fileLoad;
+exports.boundaries.fileSave = fileSave;
+exports.boundaries.location = undefined;
+exports.boundaries.useFileDB = useFileDB;
 
 function memoryLoad(id, which) {
   return Promise.resolve(exports.boundaries.database[which][id]);
 }
+
 function memorySave(id, which, obj) {
   if(obj === undefined) delete exports.boundaries.database[which][id];
   else exports.boundaries.database[which][id] = obj;
   return Promise.resolve();
+}
+
+function useMemoryDB() {
+  loadFn = memoryLoad;
+  saveFn = memorySave;
+}
+
+// TODO rewrite function
+// TODO async load
+// TODO handle failures
+function fileLoad(id, which) {
+  return new Promise((resolve) => {
+    const filename = exports.units.filename(id, which);
+    if(fs.existsSync(filename))
+      resolve(JSON.parse(fs.readFileSync(filename, {encoding:'utf8'})));
+    resolve(undefined);
+  });
+}
+
+// TODO rewrite function
+// TODO async save
+// TODO handle failures
+function fileSave(id, which, obj) {
+  return new Promise((resolve, reject) => {
+    const path = exports.units.filepath(id);
+    if(!fs.existsSync(path)) {
+      // we don't want to recreate the whole directory root
+      // i.e. this is a check to make sure our drive is mounted
+      if(fs.existsSync(exports.boundaries.location)) {
+        mkdirp.sync(path);
+      } else {
+        return reject();
+      }
+    }
+
+    const filename = exports.units.filename(id, which);
+    if(!_.isEmpty(obj))
+      fs.writeFileSync(filename, JSON.stringify(obj), { encoding:'utf8' });
+    else if(fs.existsSync(filename))
+      fs.unlink(filename);
+
+    resolve();
+  });
+}
+
+function useFileDB(location) {
+  exports.boundaries.location = location;
+  loadFn = fileLoad;
+  saveFn = fileSave;
 }

@@ -95,4 +95,21 @@ describe('ideas', function() {
       expect(JSON.parse(str)).to.deep.equal(obj);
     });
   }); // end ProxyIdea
+
+  it('filepath', function() {
+    expect(ideas.units.filepath('')).to.equal(ideas.boundaries.location + '');
+    expect(ideas.units.filepath('1')).to.equal(ideas.boundaries.location + '');
+    expect(ideas.units.filepath('12')).to.equal(ideas.boundaries.location + '');
+    expect(ideas.units.filepath('123')).to.equal(ideas.boundaries.location + '/12');
+    expect(ideas.units.filepath('1234')).to.equal(ideas.boundaries.location + '/12');
+    expect(ideas.units.filepath('12345')).to.equal(ideas.boundaries.location + '/12/34');
+    expect(ideas.units.filepath('123456')).to.equal(ideas.boundaries.location + '/12/34');
+    expect(ideas.units.filepath('1234567')).to.equal(ideas.boundaries.location + '/12/34/56');
+  });
+
+  it('filename', function() {
+    expect(ideas.units.filename('1', 'data')).to.equal(ideas.boundaries.location + '/1_data.json');
+    expect(ideas.units.filename('123', 'links')).to.equal(ideas.boundaries.location + '/12/123_links.json');
+    expect(ideas.units.filename('1234567', 'links')).to.equal(ideas.boundaries.location + '/12/34/56/1234567_links.json');
+  });
 }); // end ideas
