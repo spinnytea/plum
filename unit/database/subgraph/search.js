@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const ideas = require('../../../src/database/ideas');
@@ -98,7 +98,7 @@ describe('subgraph', function() {
 
     describe('recursiveSearch', function() {
       it('invalid edges', function() {
-        subgraph.search.units.verifyEdges.returns(Promise.resolve(undefined));
+        subgraph.search.units.verifyEdges.returns(Bluebird.resolve(undefined));
 
         return units.recursiveSearch().then(function(result) {
           expect(result).to.deep.equal([]);
@@ -111,8 +111,8 @@ describe('subgraph', function() {
 
       it('no edge selected', function() {
         const edges = ['a','b'];
-        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
-        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve(undefined));
+        subgraph.search.units.verifyEdges.returns(Bluebird.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Bluebird.resolve(undefined));
 
         return units.recursiveSearch(sg, edges).then(function(result) {
           expect(result).to.deep.equal([]);
@@ -125,9 +125,9 @@ describe('subgraph', function() {
 
       it('no next steps', function() {
         const edges = ['a','b'];
-        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
-        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
-        subgraph.search.units.expandEdge.returns(Promise.resolve([]));
+        subgraph.search.units.verifyEdges.returns(Bluebird.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Bluebird.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Bluebird.resolve([]));
 
         return units.recursiveSearch(sg, edges).then(function(result) {
           expect(result).to.deep.equal([]);
@@ -140,10 +140,10 @@ describe('subgraph', function() {
 
       it('has next steps', function() {
         const edges = ['a','b'];
-        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
-        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
-        subgraph.search.units.expandEdge.returns(Promise.resolve([1,2,3]));
-        subgraph.search.units.recursiveSearch.returns(Promise.resolve(['recursive result']));
+        subgraph.search.units.verifyEdges.returns(Bluebird.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Bluebird.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Bluebird.resolve([1,2,3]));
+        subgraph.search.units.recursiveSearch.returns(Bluebird.resolve(['recursive result']));
 
         return units.recursiveSearch(sg, edges).then(function(result) {
           expect(result).to.deep.equal(['recursive result', 'recursive result', 'recursive result']);
@@ -159,9 +159,9 @@ describe('subgraph', function() {
 
       it('base case', function() {
         const edges = []; // no more edges left
-        subgraph.search.units.verifyEdges.returns(Promise.resolve(edges));
-        subgraph.search.units.findEdgeToExpand.returns(Promise.resolve({edge:'a'}));
-        subgraph.search.units.expandEdge.returns(Promise.resolve([]));
+        subgraph.search.units.verifyEdges.returns(Bluebird.resolve(edges));
+        subgraph.search.units.findEdgeToExpand.returns(Bluebird.resolve({edge:'a'}));
+        subgraph.search.units.expandEdge.returns(Bluebird.resolve([]));
         sg._vertexCount = sg._idea.size; // pretend we found them all
 
         return units.recursiveSearch(sg, edges).then(function(result) {
@@ -189,7 +189,7 @@ describe('subgraph', function() {
       ];
 
       it('all valid', function() {
-        subgraph.search.units.verifyEdge.returns(Promise.resolve(true));
+        subgraph.search.units.verifyEdge.returns(Bluebird.resolve(true));
 
         return units.verifyEdges(sg, edges).then(function(result) {
           expect(edges.length).to.equal(6);
@@ -205,7 +205,7 @@ describe('subgraph', function() {
       });
 
       it('some invalid', function() {
-        subgraph.search.units.verifyEdge.returns(Promise.resolve(false));
+        subgraph.search.units.verifyEdge.returns(Bluebird.resolve(false));
         return units.verifyEdges(sg, edges).then(function(result) {
           expect(edges.length).to.equal(6);
           expect(result).to.equal(undefined);
@@ -261,8 +261,8 @@ describe('subgraph', function() {
       function setupBest(idx) {
         subgraph.search.units.updateSelected = function() {
           if(idx === subgraph.search.units.updateSelected.callCount++)
-            return Promise.resolve({ edge: edges[idx] });
-          return Promise.resolve(arguments[2]);
+            return Bluebird.resolve({ edge: edges[idx] });
+          return Bluebird.resolve(arguments[2]);
         };
         subgraph.search.units.updateSelected.callCount = 0;
       }
@@ -398,7 +398,7 @@ describe('subgraph', function() {
     describe('expandEdge', function() {
       // takes the place of units.updateSelected
       // we can also "select" edges where both src and dst have ids
-      const select = bluebird.coroutine(function*(vertex_id) {
+      const select = Bluebird.coroutine(function*(vertex_id) {
         const selected = { edge: sg.getEdge(vertex_id) };
         selected.isForward = sg.hasIdea(selected.edge.src);
         selected.branches = yield units.getBranches(sg, selected.edge, selected.isForward);
@@ -408,7 +408,7 @@ describe('subgraph', function() {
       it.skip('pointer uses target idea data');
 
       describe('matcher', function() {
-        it('id', bluebird.coroutine(function*() {
+        it('id', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.r_p);
           expect(selected.branches.length).to.equal(2); // there are two things linked
           expect(sg.getMatch(selected.edge.dst).matcher).to.equal(subgraph.matcher.id);
@@ -422,7 +422,7 @@ describe('subgraph', function() {
           expect(selected.branches.map).to.have.callCount(0);
         }));
 
-        it('filler', bluebird.coroutine(function*() {
+        it('filler', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.p_q);
           expect(selected.branches.length).to.equal(1); // only one thing is linked
           expect(sg.getMatch(selected.edge.dst).matcher).to.equal(subgraph.matcher.filler);
@@ -436,7 +436,7 @@ describe('subgraph', function() {
           expect(selected.branches.map).to.have.callCount(0);
         }));
 
-        it('any data', bluebird.coroutine(function*() {
+        it('any data', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.s_r);
           expect(selected.branches.length).to.equal(1);
           expect(sg.getMatch(selected.edge.src).matcher).to.equal(subgraph.matcher.exact);
@@ -452,7 +452,7 @@ describe('subgraph', function() {
       }); // end matcher
 
       describe('branches', function() {
-        it('none', bluebird.coroutine(function*() {
+        it('none', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.s_r);
           selected.branches = [data.quadrilateral]; // change the branches to something that won't match
           const branches = yield units.expandEdge(sg, selected);
@@ -460,7 +460,7 @@ describe('subgraph', function() {
           expect(branches.length).to.equal(0);
         }));
 
-        it('one', bluebird.coroutine(function*() {
+        it('one', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.s_r);
           const branches = yield units.expandEdge(sg, selected);
 
@@ -472,7 +472,7 @@ describe('subgraph', function() {
           expect(matchedIdeas).to.include(data.square);
         }));
 
-        it('multiple', bluebird.coroutine(function*() {
+        it('multiple', Bluebird.coroutine(function*() {
           const selected = yield select(sg_keys.h_p);
           const branches = yield units.expandEdge(sg, selected);
 

@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const subgraph = require('../../../src/database/subgraph');
@@ -76,7 +76,7 @@ describe('subgraph', function() {
       it('bad vertexMap', function() {
         let outer = { concrete: true, _vertexCount: 6, _edgeCount: 6 };
         let inner = { _vertexCount: 3, _edgeCount: 3 };
-        subgraph.match.units.initializeVertexMap.returns(Promise.resolve(undefined));
+        subgraph.match.units.initializeVertexMap.returns(Bluebird.resolve(undefined));
         return units.match(outer, inner).then(function(result) {
           expect(result).to.deep.equal([]);
           expect(subgraph.match.units.initializeVertexMap).to.have.callCount(1);
@@ -90,9 +90,9 @@ describe('subgraph', function() {
         let outer = { concrete: true, _vertexCount: 6, _edgeCount: 6 };
         let inner = { _vertexCount: 3, _edgeCount: 3 };
         let vertexMap = new Map();
-        subgraph.match.units.initializeVertexMap.returns(Promise.resolve(vertexMap));
+        subgraph.match.units.initializeVertexMap.returns(Bluebird.resolve(vertexMap));
         // subgraph.match.units.SubgraphMatchMetadata.returns('metadata');
-        subgraph.match.units.recursiveMatch.returns(Promise.resolve(['something']));
+        subgraph.match.units.recursiveMatch.returns(Bluebird.resolve(['something']));
         return units.match(outer, inner).then(function(result) {
           expect(result).to.deep.equal(['something']);
           expect(subgraph.match.units.initializeVertexMap).to.have.callCount(1);
@@ -137,7 +137,7 @@ describe('subgraph', function() {
           metadata = setupMetadata();
 
           metadata.nextInnerEdge = function() { return metadata.innerEdges[0]; };
-          metadata.nextOuterEdges = function() { return Promise.resolve([]); };
+          metadata.nextOuterEdges = function() { return Bluebird.resolve([]); };
           subgraph.match.units.recursiveMatch.returns(['mock recursiveMatch']);
         });
 
@@ -189,7 +189,7 @@ describe('subgraph', function() {
 
         it('one', function() {
           const innerEdge = metadata.innerEdges[0];
-          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0]]); };
+          metadata.nextOuterEdges = function() { return Bluebird.resolve([outerEdges[0]]); };
           return units.recursiveMatch(metadata).then(function(result) {
             expect(result).to.deep.equal(['mock recursiveMatch']);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(1);
@@ -204,7 +204,7 @@ describe('subgraph', function() {
           const branches = [spyOnMeta({}), metadata];
           metadata.clone.onCall(0).returns(branches[0]);
           metadata.clone.onCall(1).returns(branches[1]);
-          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0], outerEdges[1]]); };
+          metadata.nextOuterEdges = function() { return Bluebird.resolve([outerEdges[0], outerEdges[1]]); };
           return units.recursiveMatch(metadata).then(function(result) {
             expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch']);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(2);
@@ -221,7 +221,7 @@ describe('subgraph', function() {
           metadata.clone.onCall(0).returns(branches[0]);
           metadata.clone.onCall(1).returns(branches[1]);
           metadata.clone.onCall(2).returns(branches[2]);
-          metadata.nextOuterEdges = function() { return Promise.resolve([outerEdges[0], outerEdges[1], outerEdges[2]]); };
+          metadata.nextOuterEdges = function() { return Bluebird.resolve([outerEdges[0], outerEdges[1], outerEdges[2]]); };
           return units.recursiveMatch(metadata).then(function(result) {
             expect(result).to.deep.equal(['mock recursiveMatch', 'mock recursiveMatch', 'mock recursiveMatch']);
             expect(subgraph.match.units.recursiveMatch).to.have.callCount(3);
@@ -447,7 +447,7 @@ describe('subgraph', function() {
       it('possible', function() {
         inner.allIdeas = ()=>(new Map([[vi_key, vi_idea]]));
         subgraph.match.units.getOuterVertexIdFn.returns(()=>(vo_key));
-        subgraph.match.units.checkVertexData.returns(Promise.resolve(true));
+        subgraph.match.units.checkVertexData.returns(Bluebird.resolve(true));
         return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
           expect(result).to.not.equal(undefined);
           expect(_.isMap(result)).to.equal(true);
@@ -460,7 +460,7 @@ describe('subgraph', function() {
       it('not possible', function() {
         inner.allIdeas = ()=>(new Map([[vi_key, vi_idea]]));
         subgraph.match.units.getOuterVertexIdFn.returns(()=>(vo_key));
-        subgraph.match.units.checkVertexData.returns(Promise.resolve(false));
+        subgraph.match.units.checkVertexData.returns(Bluebird.resolve(false));
         return units.initializeVertexMap(outer, inner, unitsOnly).then(function(result) {
           expect(result).to.equal(undefined);
           expect(subgraph.match.units.checkVertexData).to.have.callCount(1);
@@ -534,7 +534,7 @@ describe('subgraph', function() {
       const outerEdge = { id: 1 };
 
       it('possible', function() {
-        subgraph.match.units.checkVertexData.returns(Promise.resolve(true));
+        subgraph.match.units.checkVertexData.returns(Bluebird.resolve(true));
         return units.filterOuter(meta, innerEdge, outerEdge).then(function(result) {
           expect(result).to.equal(outerEdge);
           expect(subgraph.match.units.checkVertexData).to.have.callCount(2);
@@ -542,7 +542,7 @@ describe('subgraph', function() {
       });
 
       it('not possible', function() {
-        subgraph.match.units.checkVertexData.returns(Promise.resolve(false));
+        subgraph.match.units.checkVertexData.returns(Bluebird.resolve(false));
         return units.filterOuter(meta, innerEdge, outerEdge).then(function(result) {
           expect(result).to.equal(undefined);
           expect(subgraph.match.units.checkVertexData).to.have.callCount(2);
@@ -557,8 +557,8 @@ describe('subgraph', function() {
       const other_key = 'another vertex id';
       const meta = {};
       beforeEach(function() {
-        subgraph.match.units.checkTransitionableVertexData.returns(Promise.resolve(true));
-        subgraph.match.units.checkFixedVertexData.returns(Promise.resolve(true));
+        subgraph.match.units.checkTransitionableVertexData.returns(Bluebird.resolve(true));
+        subgraph.match.units.checkFixedVertexData.returns(Bluebird.resolve(true));
 
         meta.vertexMap = new Map();
         meta.inverseMap = new Map();
@@ -611,8 +611,8 @@ describe('subgraph', function() {
       });
 
       it('not possible', function() {
-        subgraph.match.units.checkTransitionableVertexData.returns(Promise.resolve(false));
-        subgraph.match.units.checkFixedVertexData.returns(Promise.resolve(false));
+        subgraph.match.units.checkTransitionableVertexData.returns(Bluebird.resolve(false));
+        subgraph.match.units.checkFixedVertexData.returns(Bluebird.resolve(false));
         return units.checkVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(false);
           expect(subgraph.match.units.checkTransitionableVertexData).to.have.callCount(1);
@@ -632,14 +632,14 @@ describe('subgraph', function() {
         outerMatch.options.transitionable = true;
         meta.unitsOnly = false;
 
-        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
-        meta.outer.getData = sinon.stub().returns(Promise.resolve({unit: 'some unit', value: 'some outer data'}));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve({unit: 'some unit', value: 'some inner data'}));
+        meta.outer.getData = sinon.stub().returns(Bluebird.resolve({unit: 'some unit', value: 'some outer data'}));
 
         subgraph.match.boundaries.dataEquality = ()=>('dataEquality check');
       });
 
       // only valid if both vertices are transitionable
-      it('transitionable checks', bluebird.coroutine(function*() {
+      it('transitionable checks', Bluebird.coroutine(function*() {
         // false, true
         innerMatch.options.transitionable = false;
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(true);
@@ -659,7 +659,7 @@ describe('subgraph', function() {
 
       // XXX controversial check, see src
       it('no inner data', function() {
-        subgraph.match.boundaries.getData.returns(Promise.resolve(null));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve(null));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(true);
         });
@@ -667,34 +667,34 @@ describe('subgraph', function() {
 
       // XXX controversial check, see src
       it('no outer data', function() {
-        meta.outer.getData.returns(Promise.resolve(null));
+        meta.outer.getData.returns(Bluebird.resolve(null));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(true);
         });
       });
 
       // XXX controversial check, see src
-      it('must have units or nah', bluebird.coroutine(function*() {
+      it('must have units or nah', Bluebird.coroutine(function*() {
         // both have unit
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
 
         // one has unit
-        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve('some inner data'));
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
 
         // neither have unit
-        meta.outer.getData.returns(Promise.resolve('some outer data'));
+        meta.outer.getData.returns(Bluebird.resolve('some outer data'));
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal('dataEquality check');
 
         // other has unit
-        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some unit', value: 'some inner data'}));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve({unit: 'some unit', value: 'some inner data'}));
         expect(yield units.checkTransitionableVertexData(meta, vi_key, vo_key)).to.equal(false);
       }));
 
       it('units only without units', function() {
         meta.unitsOnly = true;
-        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
-        meta.outer.getData.returns(Promise.resolve('some outer data'));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve('some inner data'));
+        meta.outer.getData.returns(Bluebird.resolve('some outer data'));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(false);
         });
@@ -709,7 +709,7 @@ describe('subgraph', function() {
 
       it('units only; mismatch', function() {
         meta.unitsOnly = true;
-        subgraph.match.boundaries.getData.returns(Promise.resolve({unit: 'some other unit', value: 'some inner data'}));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve({unit: 'some other unit', value: 'some inner data'}));
         return units.checkTransitionableVertexData(meta, vi_key, vo_key).then(function(result) {
           expect(result).to.equal(false);
         });
@@ -731,14 +731,14 @@ describe('subgraph', function() {
       beforeEach(function() {
         meta.inner.hasIdea = ()=>(false);
         meta.outer.getIdea = ()=>('some outer idea');
-        meta.outer.getData = ()=>(Promise.resolve('some outer data'));
+        meta.outer.getData = ()=>(Bluebird.resolve('some outer data'));
         meta.unitsOnly = false;
 
         innerMatch.matcher = sinon.stub().returns(true);
         innerMatch.options.transitionable = false;
         innerMatch.options.pointer = false;
 
-        subgraph.match.boundaries.getData.returns(Promise.resolve('some inner data'));
+        subgraph.match.boundaries.getData.returns(Bluebird.resolve('some inner data'));
       });
 
       // when the subgraph has already mapped the idea
@@ -827,14 +827,14 @@ describe('subgraph', function() {
         // defaults are set for 'no data to be found'
         innerMatch.options.pointer = true;
         metadata.inner.hasIdea = sinon.stub().returns(false);
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
-        metadata.outer.getData = sinon.stub().returns(Promise.resolve(null));
+        metadata.inner.getData = sinon.stub().returns(Bluebird.resolve(null));
+        metadata.outer.getData = sinon.stub().returns(Bluebird.resolve(null));
         metadata.vertexMap = new Map();
       });
 
-      it('not pointer', bluebird.coroutine(function*() {
+      it('not pointer', Bluebird.coroutine(function*() {
         innerMatch.options.pointer = false;
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+        metadata.inner.getData = sinon.stub().returns(Bluebird.resolve('some inner data'));
         expect(metadata.inner.getData).to.have.callCount(0);
 
         expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
@@ -843,9 +843,9 @@ describe('subgraph', function() {
         expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
       }));
 
-      it('hasIdea', bluebird.coroutine(function*() {
+      it('hasIdea', Bluebird.coroutine(function*() {
         metadata.inner.hasIdea = sinon.stub().returns(true);
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+        metadata.inner.getData = sinon.stub().returns(Bluebird.resolve('some inner data'));
         expect(metadata.inner.getData).to.have.callCount(0);
 
         expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
@@ -854,8 +854,8 @@ describe('subgraph', function() {
         expect(metadata.inner.getData).to.have.been.calledWithExactly(vi_key);
       }));
 
-      it('target inner has data', bluebird.coroutine(function*() {
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve('some inner data'));
+      it('target inner has data', Bluebird.coroutine(function*() {
+        metadata.inner.getData = sinon.stub().returns(Bluebird.resolve('some inner data'));
         expect(metadata.inner.getData).to.have.callCount(0);
 
         expect(yield boundaries.getData(metadata, vi_key, innerMatch)).to.equal('some inner data');
@@ -864,9 +864,9 @@ describe('subgraph', function() {
         expect(metadata.inner.getData).to.have.been.calledWithExactly(target_key);
       }));
 
-      it('target outer has data', bluebird.coroutine(function*() {
-        metadata.inner.getData = sinon.stub().returns(Promise.resolve(null));
-        metadata.outer.getData = sinon.stub().returns(Promise.resolve('some outer data'));
+      it('target outer has data', Bluebird.coroutine(function*() {
+        metadata.inner.getData = sinon.stub().returns(Bluebird.resolve(null));
+        metadata.outer.getData = sinon.stub().returns(Bluebird.resolve('some outer data'));
         metadata.vertexMap.set(target_key, vo_key);
         expect(metadata.inner.getData).to.have.callCount(0);
         expect(metadata.outer.getData).to.have.callCount(0);
@@ -879,7 +879,7 @@ describe('subgraph', function() {
         expect(metadata.outer.getData).to.have.been.calledWithExactly(vo_key);
       }));
 
-      it('no data to be found', bluebird.coroutine(function*() {
+      it('no data to be found', Bluebird.coroutine(function*() {
         expect(metadata.inner.getData).to.have.callCount(0);
         expect(metadata.outer.getData).to.have.callCount(0);
 

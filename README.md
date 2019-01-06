@@ -8,7 +8,10 @@ Project Structure
     * always mock boundaries
     * mock out units whenever it make sense
     * test every unit function in every way it's meant to be tested
+    * thurough coverage, make sure all the pieces work
 * `/spec` integration tests
     * do not mock anything
     * test the top level functions
     * test the boundaries
+    * simple tests to ensure everything works together
+    * these should be "true to life" examples, or example implementations to follow

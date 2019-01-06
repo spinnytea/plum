@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
@@ -7,7 +7,7 @@ const subgraph = require('../../../src/database/subgraph');
 
 describe('subgraph', function() {
   describe('search', function() {
-    it('shapes', bluebird.coroutine(function*() {
+    it('shapes', Bluebird.coroutine(function*() {
       let data = {
         square: { name: 'square' },
         rectangle: { name: 'rectangle' },
@@ -43,7 +43,7 @@ describe('subgraph', function() {
       expect(result.getIdea(sg_keys.q)).to.deep.equal(data.quadrilateral);
     }));
 
-    it('no match', bluebird.coroutine(function*() {
+    it('no match', Bluebird.coroutine(function*() {
       let data = {
         store: { name: 'store' },
         apple: { name: 'apple' },

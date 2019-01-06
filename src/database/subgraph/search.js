@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const subgraph = require('../subgraph');
 // TODO review file after testing is done
 
@@ -25,7 +25,7 @@ exports.units.expandEdge = expandEdge;
 //
 // Note: it's best if the subgraph is flat before running this
 function search(sg) {
-  if(sg.concrete) return Promise.resolve([sg]);
+  if(sg.concrete) return Bluebird.resolve([sg]);
 
   // sort high[0,1,...] to low[...,11,12]
   let edges = _.sortBy(sg.allEdges(), 'options.pref').reverse();
@@ -34,7 +34,7 @@ function search(sg) {
 }
 
 function recursiveSearch(sg, edges) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     // prune and validate edges that are finished
     edges = yield exports.units.verifyEdges(sg, edges);
     if(!edges) return [];
@@ -54,7 +54,7 @@ function recursiveSearch(sg, edges) {
       // do the next iteration of searches
       let ret = [];
       edges = _.pull(edges, selected.edge);
-      return bluebird.coroutine(function*() {
+      return Bluebird.coroutine(function*() {
         for(let sg of nextSteps) {
           Array.prototype.push.apply(ret, yield exports.units.recursiveSearch(sg, edges));
         }
@@ -82,7 +82,7 @@ function verifyEdges(sg, edges) {
   });
 
   // if any of the edges are invalid, then this subgraph match is invalid
-  return Promise.all(done.map((edge)=>exports.units.verifyEdge(sg, edge))).then(function(done) {
+  return Bluebird.all(done.map((edge)=>exports.units.verifyEdge(sg, edge))).then(function(done) {
     if(done.every(_.identity))
       return edges;
     return undefined;
@@ -97,7 +97,7 @@ function verifyEdges(sg, edges) {
 // but this will be more efficient
 // in the transitive case, we don't need to build a complete list, we just need to check for presence along the way
 function verifyEdge(sg, edge) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     if(edge.options.transitive || edge.link.options.transitive) {
       // since (Given a->b) A is more specific and B is more general, we will start at A and go towards B
       // (mark --type_of-> person) we don't want to explore ALL the specific cases
@@ -133,7 +133,7 @@ function verifyEdge(sg, edge) {
 
 // find an edge what's partially on the graph, and partially off the graph
 function findEdgeToExpand(sg, edges) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     let selected = null;
 
     for(let edge of edges) {
@@ -154,20 +154,20 @@ function findEdgeToExpand(sg, edges) {
 function updateSelected(sg, edge, selected) {
   // if we've already pick an edge with a higher pref, then we don't need to consider this edge
   if(selected && selected.edge.options.pref > edge.options.pref)
-    return Promise.resolve(selected);
+    return Bluebird.resolve(selected);
 
   const isSrc = sg.hasIdea(edge.src);
   const isDst = sg.hasIdea(edge.dst);
   // if they are both true or both false, then we shouldn't consider this edge
   // (side note: they shouldn't be in the list anymore if they are both true)
   // we only want to select this edge if one is specified and the other is not
-  if(isSrc === isDst) return Promise.resolve(selected);
+  if(isSrc === isDst) return Bluebird.resolve(selected);
 
   // we can't consider this edge if the target object hasn't be identified
   // Note: don't keep following pointers; this matcher is based on the contents of the target idea
   const match = sg.getMatch(isSrc?edge.dst:edge.src);
   if(match.options.pointer && !sg.hasIdea(match.data))
-    return Promise.resolve(selected);
+    return Bluebird.resolve(selected);
 
   return exports.units.getBranches(sg, edge, isSrc).then(function(currBranches) {
     if(!selected || selected.edge.options.pref < edge.options.pref || currBranches.length < selected.branches.length) {
@@ -183,7 +183,7 @@ function updateSelected(sg, edge, selected) {
 }
 
 function getBranches(sg, edge, isForward) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     if(edge.options.transitive || edge.link.options.transitive) {
       // collect all vertices along the link
       const next = [sg.getIdea(isForward?edge.src:edge.dst)]; // a list of all the places to visit; using push and pop for speed; traversal order doesn't matter
@@ -215,7 +215,7 @@ function getBranches(sg, edge, isForward) {
 }
 
 function expandEdge(sg, selected) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     const target_vertex_id = (selected.isForward ? selected.edge.dst : selected.edge.src);
     let match = sg.getMatch(target_vertex_id);
     let matchData = match.data;
@@ -243,7 +243,7 @@ function expandEdge(sg, selected) {
       // - once that's done, we can perform the filter
       // - the map returns either the idea or undefined, so we filter on the identity
       default:
-        matchedBranches = (yield Promise.all(selected.branches.map(function(idea) {
+        matchedBranches = (yield Bluebird.all(selected.branches.map(function(idea) {
           return idea.data().then((d)=>(match.matcher(d, matchData)?idea:undefined));
         }))).filter(_.identity);
         break;

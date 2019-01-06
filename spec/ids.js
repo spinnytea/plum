@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-as-promised')).expect;
 const config = require('../src/config');
 const ids = require('../src/ids');
@@ -36,6 +36,6 @@ describe('ids', function() {
 
   it('next (many)', function() {
     let promises = new Array(5).fill(null).map(function() { return ids.next(NEXT_ID); });
-    return expect(bluebird.all(promises).then(cleanup)).to.eventually.deep.equal(['1', '2', '3', '4', '5']);
+    return expect(Bluebird.all(promises).then(cleanup)).to.eventually.deep.equal(['1', '2', '3', '4', '5']);
   });
 }); // end ids

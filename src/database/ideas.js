@@ -3,7 +3,7 @@
 // this is how all the data is stored
 // TODO refactor file so it follows the same pattern (simple exports on the top, complex units)
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const fs = require('fs');
 const mkdirp = require('mkdirp');
 const config = require('../config');
@@ -55,13 +55,13 @@ class ProxyIdea {
 // - I don't want to create a new CR every time we call the function (so addLink(args) { return BB.CR(fn*(){})(); } is out of the question)
 // - I don't think it's clean to save the CR as a function elsewhere and just redirect to it (const fn = BB.CR; addLink(args) { return fn(args) } )
 // - Is to bad to have a mixed definition? do I need to put addLink directly in the class (is this an assumption I should discard?)
-ProxyIdea.prototype.addLink = bluebird.coroutine(function*(link, idea) {
+ProxyIdea.prototype.addLink = Bluebird.coroutine(function*(link, idea) {
   yield exports.load(idea);
   yield exports.load(this.id);
   (memory.get(this.id).links[link.name] = memory.get(this.id).links[link.name] || {})[idea.id] = {};
   (memory.get(idea.id).links[link.opposite.name] = memory.get(idea.id).links[link.opposite.name] || {})[this.id] = {};
 });
-ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
+ProxyIdea.prototype.removeLink = Bluebird.coroutine(function*(link, idea) {
   idea = yield exports.load(idea);
   yield exports.load(this.id);
 
@@ -87,14 +87,14 @@ ProxyIdea.prototype.removeLink = bluebird.coroutine(function*(link, idea) {
 });
 
 
-exports.create = bluebird.coroutine(function*(data) {
+exports.create = Bluebird.coroutine(function*(data) {
   const id = yield ids.next(NEXT_ID);
   memory.set(id, new CoreIdea(id, _.cloneDeep(data)));
   if(data) return exports.save(id);
   else return new ProxyIdea(id);
 });
 
-exports.load = bluebird.coroutine(function*(idea) {
+exports.load = Bluebird.coroutine(function*(idea) {
   const proxy = new ProxyIdea(getID(idea));
 
   if(!memory.has(proxy.id)) {
@@ -109,7 +109,7 @@ exports.proxy = function(idea) {
   return new ProxyIdea(getID(idea));
 };
 
-exports.save = bluebird.coroutine(function*(idea) {
+exports.save = Bluebird.coroutine(function*(idea) {
   const proxy = new ProxyIdea(getID(idea));
   const core = memory.get(proxy.id);
 
@@ -121,13 +121,13 @@ exports.save = bluebird.coroutine(function*(idea) {
   return proxy;
 });
 
-exports.close = bluebird.coroutine(function*(idea) {
+exports.close = Bluebird.coroutine(function*(idea) {
   const proxy = yield exports.save(idea);
   memory.delete(proxy.id);
   return proxy;
 });
 
-exports.delete = bluebird.coroutine(function*(idea) {
+exports.delete = Bluebird.coroutine(function*(idea) {
   const proxy = yield exports.load(idea);
 
   // remove all the links
@@ -147,7 +147,7 @@ exports.delete = bluebird.coroutine(function*(idea) {
 });
 
 /* allows for hard coded context ideas */
-exports.context = bluebird.coroutine(function*(name) {
+exports.context = Bluebird.coroutine(function*(name) {
   if(!name) throw new TypeError('must provide a name');
   const context = yield contextPromise;
   const id = context[name];
@@ -170,21 +170,21 @@ exports.context = bluebird.coroutine(function*(name) {
  * @param edges [ [src, link, dst], ... ]
  * @return verts, but now the data is actually proxys
  */
-exports.createGraph = bluebird.coroutine(function*(verts, edges) {
+exports.createGraph = Bluebird.coroutine(function*(verts, edges) {
   // get the list of keys up front so we have a standard order
   const idea_keys = _.keys(verts);
   // create all the objects
-  const all = yield Promise.all(idea_keys.map((k)=>exports.create(verts[k])));
+  const all = yield Bluebird.all(idea_keys.map((k)=>exports.create(verts[k])));
   // map the ideas back onto the original verts object
   idea_keys.forEach(function(k, idx) { verts[k] = all[idx]; });
 
   // add all the links
-  yield Promise.all(edges.map(function([src, link, dst]) {
+  yield Bluebird.all(edges.map(function([src, link, dst]) {
     return verts[src].addLink(links.get(link), verts[dst]);
   }));
 
   // save all the ideas (which saves the links)
-  yield Promise.all(_.values(verts).map(exports.save));
+  yield Bluebird.all(_.values(verts).map(exports.save));
 
   // return the verts object
   return verts;
@@ -233,13 +233,13 @@ exports.boundaries.location = undefined;
 exports.boundaries.useFileDB = useFileDB;
 
 function memoryLoad(id, which) {
-  return Promise.resolve(exports.boundaries.database[which][id]);
+  return Bluebird.resolve(exports.boundaries.database[which][id]);
 }
 
 function memorySave(id, which, obj) {
   if(obj === undefined) delete exports.boundaries.database[which][id];
   else exports.boundaries.database[which][id] = obj;
-  return Promise.resolve();
+  return Bluebird.resolve();
 }
 
 function useMemoryDB() {
@@ -251,7 +251,7 @@ function useMemoryDB() {
 // TODO async load
 // TODO handle failures
 function fileLoad(id, which) {
-  return new Promise((resolve) => {
+  return new Bluebird((resolve) => {
     const filename = exports.units.filename(id, which);
     if(fs.existsSync(filename))
       resolve(JSON.parse(fs.readFileSync(filename, {encoding:'utf8'})));
@@ -263,7 +263,7 @@ function fileLoad(id, which) {
 // TODO async save
 // TODO handle failures
 function fileSave(id, which, obj) {
-  return new Promise((resolve, reject) => {
+  return new Bluebird((resolve, reject) => {
     const path = exports.units.filepath(id);
     if(!fs.existsSync(path)) {
       // we don't want to recreate the whole directory root

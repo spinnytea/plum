@@ -1,5 +1,6 @@
 'use strict';
 const _ = require('lodash');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const sinon = require('sinon');
 const subgraph = require('../../../src/database/subgraph');
@@ -19,14 +20,14 @@ describe('subgraph', function() {
         subgraph.rewrite.units[name] = sinon.stub();
       });
       _.keys(subgraph.rewrite.boundaries).forEach(function(name) {
-        subgraph.rewrite.boundaries[name] = sinon.stub().returns(Promise.resolve());
+        subgraph.rewrite.boundaries[name] = sinon.stub().returns(Bluebird.resolve());
       });
 
       sg = {
         concrete: true,
         copy: sinon.stub().returns('copy'),
         getMatch: sinon.stub().returns({ options: { transitionable: true } }), // some valid matcher
-        getData: sinon.stub().returns(Promise.resolve()),
+        getData: sinon.stub().returns(Bluebird.resolve()),
         setData: sinon.stub(),
         getEdge: sinon.stub().returns({ src: 1, dst: 2, options: { transitionable: true } }), // some valid edge
         updateEdge: sinon.stub(),
@@ -41,10 +42,10 @@ describe('subgraph', function() {
       const te = { edge_id: 'some edge' };
       const ts = [ tv, te ];
       beforeEach(function() {
-        subgraph.rewrite.units.checkVertex.returns(Promise.resolve(true));
-        subgraph.rewrite.units.checkEdge.returns(Promise.resolve(true));
-        subgraph.rewrite.units.transitionVertex.returns(Promise.resolve());
-        subgraph.rewrite.units.transitionEdge.returns(Promise.resolve());
+        subgraph.rewrite.units.checkVertex.returns(Bluebird.resolve(true));
+        subgraph.rewrite.units.checkEdge.returns(Bluebird.resolve(true));
+        subgraph.rewrite.units.transitionVertex.returns(Bluebird.resolve());
+        subgraph.rewrite.units.transitionEdge.returns(Bluebird.resolve());
       });
 
       it('noop', function() {
@@ -82,7 +83,7 @@ describe('subgraph', function() {
       });
 
       it('one vertex fails', function() {
-        subgraph.rewrite.units.checkVertex.returns(Promise.resolve(false));
+        subgraph.rewrite.units.checkVertex.returns(Bluebird.resolve(false));
         return units.rewrite(sg, ts).then(function(result) {
           expect(result).to.equal(undefined);
           expect(subgraph.rewrite.units.checkVertex).to.have.callCount(1);
@@ -96,7 +97,7 @@ describe('subgraph', function() {
       });
 
       it('one edge fails', function() {
-        subgraph.rewrite.units.checkEdge.returns(Promise.resolve(false));
+        subgraph.rewrite.units.checkEdge.returns(Bluebird.resolve(false));
         return units.rewrite(sg, ts).then(function(result) {
           expect(result).to.equal(undefined);
           expect(subgraph.rewrite.units.checkVertex).to.have.callCount(1);
@@ -110,7 +111,7 @@ describe('subgraph', function() {
       });
 
       it('one t fails', function() {
-        subgraph.rewrite.units.checkVertex.returns(Promise.resolve(false));
+        subgraph.rewrite.units.checkVertex.returns(Bluebird.resolve(false));
         return units.rewrite(sg, [{}]).then(function(result) {
           expect(result).to.equal(undefined);
           expect(subgraph.rewrite.units.checkVertex).to.have.callCount(0);
@@ -198,7 +199,7 @@ describe('subgraph', function() {
       });
 
       it('vertex without data', function() {
-        sg.getData.returns(Promise.resolve(undefined));
+        sg.getData.returns(Bluebird.resolve(undefined));
         return units.checkVertex(sg, dummy_vertex_transition).then(function(result) {
           expect(result).to.equal(false);
           expect(sg.getMatch).to.have.callCount(1);
@@ -210,7 +211,7 @@ describe('subgraph', function() {
 
       it('replace w/o unit', function() {
         let vertex_id = 'replace w/o unit';
-        sg.getData.returns(Promise.resolve({ some: 'value' }));
+        sg.getData.returns(Bluebird.resolve({ some: 'value' }));
         return units.checkVertex(sg, { vertex_id: vertex_id, replace: { another: 'value' } }).then(function(result) {
           expect(result).to.equal(true);
           expect(sg.getMatch).to.have.callCount(1);
@@ -222,7 +223,7 @@ describe('subgraph', function() {
 
       it('replace with unit', function() {
         let vertex_id = 'replace with unit';
-        sg.getData.returns(Promise.resolve({ some: 'value', unit: 'taters' }));
+        sg.getData.returns(Bluebird.resolve({ some: 'value', unit: 'taters' }));
         return units.checkVertex(sg, { vertex_id: vertex_id, replace: { another: 'value', unit: 'taters' } }).then(function(result) {
           expect(result).to.equal(true);
           expect(sg.getMatch).to.have.callCount(1);
@@ -234,7 +235,7 @@ describe('subgraph', function() {
 
       it('replace_id w/o unit', function() {
         // Note: having two different return values isn't necessary for the test
-        sg.getData.returns(Promise.resolve({ some: 'value' }));
+        sg.getData.returns(Bluebird.resolve({ some: 'value' }));
         return units.checkVertex(sg, { vertex_id: 'first id w/o', replace_id: 'second id w/o' }).then(function(result) {
           expect(result).to.equal(true);
           expect(sg.getMatch).to.have.callCount(1);
@@ -247,7 +248,7 @@ describe('subgraph', function() {
 
       it('replace_id with unit', function() {
         // Note: having two different return values isn't necessary for the test
-        sg.getData.returns(Promise.resolve({ some: 'value', unit: 'taters' }));
+        sg.getData.returns(Bluebird.resolve({ some: 'value', unit: 'taters' }));
         return units.checkVertex(sg, { vertex_id: 'first id with', replace_id: 'second id with' }).then(function(result) {
           expect(result).to.equal(true);
           expect(sg.getMatch).to.have.callCount(1);
@@ -280,7 +281,7 @@ describe('subgraph', function() {
       });
 
       it('replace_id !actual', function() {
-        sg.getData.returns(Promise.resolve('some replacement value'));
+        sg.getData.returns(Bluebird.resolve('some replacement value'));
         return units.transitionVertex(sg, { vertex_id: 'some id', replace_id: 'another id' }, false).then(function() {
           expect(sg.getData).to.have.callCount(1);
           expect(sg.getData).to.have.been.calledWithExactly('another id');
@@ -291,7 +292,7 @@ describe('subgraph', function() {
       });
 
       it('replace_id actual', function() {
-        sg.getData.returns(Promise.resolve('some replacement value'));
+        sg.getData.returns(Bluebird.resolve('some replacement value'));
         return units.transitionVertex(sg, { vertex_id: 'some id', replace_id: 'another id' }, true).then(function() {
           expect(sg.getData).to.have.callCount(1);
           expect(sg.getData).to.have.been.calledWithExactly('another id');

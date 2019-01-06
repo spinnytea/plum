@@ -1,15 +1,15 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
 const subgraph = require('../../../src/database/subgraph');
 
-// TODO test subgraph.match with subgraph.getData return Promise.reject; it should bubble up to the top as a reject
+// TODO test subgraph.match with subgraph.getData return Bluebird.reject; it should bubble up to the top as a reject
 // TODO test boundaries (move from unit)
 describe('subgraph', function() {
   describe('match', function() {
-    it('shapes', bluebird.coroutine(function*() {
+    it('shapes', Bluebird.coroutine(function*() {
       let data = {
         square: { name: 'square' },
         rectangle: { name: 'rectangle' },

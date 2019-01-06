@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-things')).use(require('sinon-chai')).expect;
 const ideas = require('../../../src/database/ideas');
 const links = require('../../../src/database/links');
@@ -17,7 +17,7 @@ const subgraph = require('../../../src/database/subgraph');
  */
 describe('subgraph', function() {
   describe('rewrite', function() {
-    it('mark and his fruit', bluebird.coroutine(function*() {
+    it('mark and his fruit', Bluebird.coroutine(function*() {
       const data = {
         mark: { name: 'mark' },
         apple: { name: 'apple' },

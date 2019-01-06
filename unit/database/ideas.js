@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').expect;
 const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
@@ -59,7 +59,7 @@ describe('ideas', function() {
     });
 
     it('links', function() {
-      return bluebird.coroutine(function*() {
+      return Bluebird.coroutine(function*() {
         const link = links.get('thought_description');
         const proxy2 = yield ideas.create();
 

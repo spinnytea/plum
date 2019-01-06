@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-as-promised')).expect;
 const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
@@ -69,7 +69,7 @@ describe('ideas', function() {
     });
   });
 
-  it('delete', bluebird.coroutine(function*() {
+  it('delete', Bluebird.coroutine(function*() {
       const one = yield ideas.create('one');
       const two = yield ideas.create('two');
       const link = links.get('thought_description');
@@ -103,7 +103,7 @@ describe('ideas', function() {
       expect(ideas.boundaries.database.links).to.not.have.property(one.id);
   }));
 
-  it('context', bluebird.coroutine(function*() {
+  it('context', Bluebird.coroutine(function*() {
     const name = '_test_' + Math.random();
 
     let proxy = yield ideas.context(name);
@@ -118,7 +118,7 @@ describe('ideas', function() {
     return expect(ideas.context()).to.eventually.be.rejectedWith(TypeError);
   });
 
-  it('createGraph', bluebird.coroutine(function*() {
+  it('createGraph', Bluebird.coroutine(function*() {
     const verts = {
       person: {name:'person'},
       mark: {name:'mark'},

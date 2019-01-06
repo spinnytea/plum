@@ -2,7 +2,7 @@
 // generate/increment IDs
 // acts the same as counting (1, 2, 3, ... 9, 10, 11, ...) but with a larger character set
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const config = require('./config');
 const utils = require('./utils');
 
@@ -11,7 +11,7 @@ const utils = require('./utils');
 exports.anonymous = (nextID => increment(nextID || '0'));
 
 // chain together the promises so we can call this multiple times before going async
-exports.next = utils.transaction(bluebird.coroutine(function*(key) {
+exports.next = utils.transaction(Bluebird.coroutine(function*(key) {
   let nextID = yield config.get('ids', key, '0');
   nextID = increment(nextID);
   return config.set('ids', key, nextID);

@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const expect = require('chai').use(require('chai-as-promised')).expect;
 const ideas = require('../../src/database/ideas');
 const links = require('../../src/database/links');
@@ -11,13 +11,13 @@ describe('subgraph', function() {
     beforeEach(function() { sg = new subgraph.Subgraph(); });
 
     describe('getData', function() {
-      it('idea without data', bluebird.coroutine(function*() {
+      it('idea without data', Bluebird.coroutine(function*() {
         const v = sg.addVertex(subgraph.matcher.id, { id: '_test' });
         expect(yield sg.getData(v)).to.equal(undefined);
         expect(yield sg.getData(v)).to.equal(undefined);
       }));
       
-      it('idea with data', bluebird.coroutine(function*() {
+      it('idea with data', Bluebird.coroutine(function*() {
         const id = '_test';
         const v = sg.addVertex(subgraph.matcher.id, { id: id });
         yield ideas.proxy(id).setData('banana');
@@ -29,7 +29,7 @@ describe('subgraph', function() {
   }); // end Subgraph
 
   describe('matcher', function() {
-    it('id', bluebird.coroutine(function*() {
+    it('id', Bluebird.coroutine(function*() {
       const data = { mark: undefined, apple: undefined, fruit: undefined };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
       yield data.fruit.setData(data.apple.id);
@@ -53,7 +53,7 @@ describe('subgraph', function() {
       expect(result.length).to.equal(0);
     }));
 
-    it('filler', bluebird.coroutine(function*() {
+    it('filler', Bluebird.coroutine(function*() {
       const data = { mark: undefined, apple: undefined };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
@@ -69,7 +69,7 @@ describe('subgraph', function() {
       expect(result[0].getIdea(a).id).to.equal(data.apple.id);
     }));
 
-    it('exact', bluebird.coroutine(function*() {
+    it('exact', Bluebird.coroutine(function*() {
       const data = { mark: undefined, apple: {'thing': 3.14} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
@@ -91,7 +91,7 @@ describe('subgraph', function() {
       expect(result.length).to.equal(0);
     }));
 
-    it('similar', bluebird.coroutine(function*() {
+    it('similar', Bluebird.coroutine(function*() {
       const data = { mark: undefined, apple: {'thing1': 3.14, 'thing2': 2.71} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 
@@ -113,7 +113,7 @@ describe('subgraph', function() {
       expect(result.length).to.equal(0);
     }));
 
-    it('substring', bluebird.coroutine(function*() {
+    it('substring', Bluebird.coroutine(function*() {
       const data = { mark: undefined, apple: {'thing': 'ExPeNsIvE'} };
       yield ideas.createGraph(data, [ ['mark', 'thought_description', 'apple'] ]);
 

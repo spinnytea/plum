@@ -1,6 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 const subgraph = require('../subgraph');
 
 module.exports = exports = match;
@@ -36,12 +36,12 @@ function match(outer, inner, unitsOnly) {
     throw new RangeError('the outer subgraph must be concrete before you can match against it');
 
   if(inner._vertexCount === 0)
-    return Promise.resolve([]);
+    return Bluebird.resolve([]);
 
   // the inner must fit a subset of outer
   // if the inner is larger, then this is impossible
   if(inner._vertexCount > outer._vertexCount || inner._edgeCount > outer._edgeCount)
-    return Promise.resolve([]);
+    return Bluebird.resolve([]);
 
   // ensure it's a boolean
   // this is also to prove that the default value should be false (we need to specifically opt-in for true)
@@ -66,8 +66,8 @@ function recursiveMatch(metadata) {
   // Note: we won't recurse if innerEdges.length === skipThisTime.size
   if(metadata.innerEdges.length === 0) {
     if(metadata.vertexMap.size === metadata.inner._vertexCount)
-      return Promise.resolve([{ v: metadata.vertexMap, e: metadata.edgeMap }]);
-    return Promise.resolve([]);
+      return Bluebird.resolve([{ v: metadata.vertexMap, e: metadata.edgeMap }]);
+    return Bluebird.resolve([]);
   }
 
   // pick the best inner edge
@@ -104,7 +104,7 @@ function recursiveMatch(metadata) {
     // - loop over matches
     // - clone (or reuse) metadata
     // - recurse
-    return Promise.all(matches.map(function(outerEdge) {
+    return Bluebird.all(matches.map(function(outerEdge) {
       // don't clone if it's the last match
       const last = (arguments[1] === matches.length - 1);
       const meta = last ? metadata : metadata.clone();
@@ -187,7 +187,7 @@ class SubgraphMatchMetadata {
   // find all matching outer edges
   nextOuterEdges(innerEdge) {
     const edges = this.outerEdges.get(innerEdge.link.name) || [];
-    return Promise.all(edges.map(
+    return Bluebird.all(edges.map(
       (outerEdge) => exports.units.filterOuter(this, innerEdge, outerEdge)
     )).then(function(matches) {
       // clear the list of unmatched edges
@@ -242,7 +242,7 @@ function initializeVertexMap(outer, inner, unitsOnly) {
     }
   });
 
-  return Promise.all(promises).then(function(possible) {
+  return Bluebird.all(promises).then(function(possible) {
     if(possible.every(_.identity))
       return vertexMap;
     return undefined;
@@ -300,7 +300,7 @@ function getOuterVertexIdFn(outerIdeas, innerCount) {
  * @return outerEdge if we should use outer edge to expand, undefined otherwise, wrapped in a promise
  */
 function filterOuter(metadata, innerEdge, outerEdge) {
-  return Promise.all([
+  return Bluebird.all([
     exports.units.checkVertexData(metadata, innerEdge.src, outerEdge.src),
     exports.units.checkVertexData(metadata, innerEdge.dst, outerEdge.dst),
   ]).then(function([srcPossible, dstPossible]) {
@@ -322,15 +322,15 @@ function checkVertexData(metadata, vi_key, vo_key) {
   if(metadata.vertexMap) {
     if(metadata.vertexMap.has(vi_key)) {
       if(metadata.vertexMap.get(vi_key) !== vo_key)
-        return Promise.resolve(false);
+        return Bluebird.resolve(false);
     } else {
       // outerEdge src is mapped to a different inner id
       if(metadata.inverseMap.has(vo_key))
-        return Promise.resolve(false);
+        return Bluebird.resolve(false);
     }
   }
 
-  return Promise.resolve([
+  return Bluebird.resolve([
     exports.units.checkTransitionableVertexData(metadata, vi_key, vo_key),
     exports.units.checkFixedVertexData(metadata, vi_key, vo_key),
   ]).then(function([trans, fixed]) {
@@ -343,7 +343,7 @@ function checkVertexData(metadata, vi_key, vo_key) {
  * it should noop for non-transitionable vertices (returns true because it isn't determined to be invalid)
  */
 function checkTransitionableVertexData(metadata, vi_key, vo_key) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     const innerMatch = metadata.inner.getMatch(vi_key);
 
     // if the inner isn't transitionable, then we don't need to check anything
@@ -393,7 +393,7 @@ function checkTransitionableVertexData(metadata, vi_key, vo_key) {
  * then we need a harder check on the value
  */
 function checkFixedVertexData(metadata, vi_key, vo_key) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     // only necessary to check when the inner idea has not been identified
     // because matchers are used for identifying the ideas; ones ideas have been identified, the matchers don't make sense anymore
     // matchers are for the identification phase; once we have ideas, then we are in an imagination phase
@@ -446,7 +446,7 @@ function dataEquality(vi_data, vo_data) {
  * TL;DR: pointer is used for matching only
  */
 function getData(metadata, vi_key, innerMatch) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     // if this is not a pointer, then we use the data at this vertex
     // if it already is mapped, then use the data at this vertex
     if(!innerMatch.options.pointer || metadata.inner.hasIdea(vi_key))
@@ -468,6 +468,6 @@ function getData(metadata, vi_key, innerMatch) {
       return metadata.outer.getData(vo_key);
 
     // we can't find data to use (this is okay)
-    return Promise.resolve(null);
+    return Bluebird.resolve(null);
   })();
 }

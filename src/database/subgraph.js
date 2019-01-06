@@ -1,5 +1,6 @@
 'use strict';
 const _ = require('lodash');
+const Bluebird = require('bluebird');
 const ideas = require('./ideas');
 const links = require('./links');
 
@@ -278,11 +279,11 @@ class Subgraph {
     let data = this._data.get(id);
 
     if(data === null) {
-      return Promise.resolve(undefined);
+      return Bluebird.resolve(undefined);
     } else if(data !== undefined) {
-      return Promise.resolve(data);
+      return Bluebird.resolve(data);
     } else if(this.getIdea(id) === undefined) {
-      return Promise.resolve(undefined);
+      return Bluebird.resolve(undefined);
     } else {
       // try to load the data
       let idea = this.getIdea(id);

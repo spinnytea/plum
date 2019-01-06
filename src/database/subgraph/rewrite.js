@@ -1,5 +1,5 @@
 'use strict';
-const bluebird = require('bluebird');
+const Bluebird = require('bluebird');
 
 module.exports = exports = rewrite;
 
@@ -28,12 +28,12 @@ function rewrite(subgraph, transitions, actual) {
 
   // XXX is !concrete allowed if !actual
   if(!subgraph.concrete)
-    return Promise.resolve(undefined);
+    return Bluebird.resolve(undefined);
 
   // validate transitions
   // check all transitions to ensure they the vertex or edge checks
   // XXX do we really need to validate the transitions?
-  return Promise.all(transitions.map(function(t) {
+  return Bluebird.all(transitions.map(function(t) {
     if(t.hasOwnProperty('vertex_id')) {
       return exports.units.checkVertex(subgraph, t);
     } else if(t.hasOwnProperty('edge_id')) {
@@ -50,7 +50,7 @@ function rewrite(subgraph, transitions, actual) {
     if(!actual)
       subgraph = subgraph.copy();
 
-    return Promise.all(transitions.map(function(t) {
+    return Bluebird.all(transitions.map(function(t) {
       if(t.hasOwnProperty('vertex_id')) {
         return exports.units.transitionVertex(subgraph, t, actual);
       } else { //if(t.hasOwnProperty('edge_id')) {
@@ -66,17 +66,17 @@ function rewrite(subgraph, transitions, actual) {
 // return true if the vertex transition is valid
 function checkVertex(subgraph, t) {
   if(!t || !t.hasOwnProperty('vertex_id'))
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   if(!(t.hasOwnProperty('replace') || t.hasOwnProperty('replace_id')))
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   const match = subgraph.getMatch(t['vertex_id']);
   if(!match)
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   if(!match.options.transitionable)
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   return subgraph.getData(t['vertex_id']).then(function(data) {
     // if there is no data, then there is nothing to transition
@@ -96,7 +96,7 @@ function checkVertex(subgraph, t) {
 } // end checkVertex
 
 function transitionVertex(subgraph, t, actual) {
-  return bluebird.coroutine(function*() {
+  return Bluebird.coroutine(function*() {
     if(t.hasOwnProperty('replace')) {
       subgraph.setData(t['vertex_id'], t.replace);
     } else { // if(t.hasOwnProperty('replace_id')) {
@@ -110,27 +110,27 @@ function transitionVertex(subgraph, t, actual) {
 
 function checkEdge(subgraph, t) {
   if(!t || !t.hasOwnProperty('edge_id'))
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   if(!(t.hasOwnProperty('replace_src') || t.hasOwnProperty('replace_dst')))
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   const edge = subgraph.getEdge(t['edge_id']);
   if(!edge)
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   if(!edge.options.transitionable)
-    return Promise.resolve(false);
+    return Bluebird.resolve(false);
 
   if(t.hasOwnProperty('replace_src')) {
     if(!subgraph.getMatch(t['replace_src']))
-      return Promise.resolve(false);
+      return Bluebird.resolve(false);
   } else { // if(t.hasOwnProperty('replace_dst')) {
     if(!subgraph.getMatch(t['replace_dst']))
-      return Promise.resolve(false);
+      return Bluebird.resolve(false);
   }
 
-  return Promise.resolve(true);
+  return Bluebird.resolve(true);
 } // end checkEdge
 
 function transitionEdge(subgraph, t, actual) {
@@ -146,7 +146,7 @@ function transitionEdge(subgraph, t, actual) {
     return exports.boundaries.updateLink(subgraph, edge.link, prevSrc, prevDst, nextSrc, nextDst);
   }
 
-  return Promise.resolve();
+  return Bluebird.resolve();
 } // end transitionEdge
 
 
@@ -164,7 +164,7 @@ function updateData(subgraph, vertex_id) {
 // - should it be (subgraph, edge, prevSrc, prevDst)?
 // - should it be (subgraph, prevEdge, nextEdge)? where link is the same?
 function updateLink(subgraph, link, prevSrc, prevDst, nextSrc, nextDst) {
-  return Promise.all([
+  return Bluebird.all([
     subgraph.getIdea(prevSrc).removeLink(link, subgraph.getIdea(prevDst)),
     subgraph.getIdea(nextSrc).addLink(link, subgraph.getIdea(nextDst)),
   ]);

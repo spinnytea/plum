@@ -1,8 +1,9 @@
 'use strict';
+const Bluebird = require('bluebird');
 const fs = require('fs');
 
 // we need to suspend interactions with config until after we have called init
-const init = Promise.defer();
+const init = Bluebird.defer();
 
 // get the saved value, or use the passed in default (the default will be saved)
 exports.get = ((path, key, value) => init.promise.then(() => getValue(path, key, value)));
